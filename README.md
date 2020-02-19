@@ -13,7 +13,12 @@ Slim and super-fast actor system for dotnet
 
 ## Quick start
 
-- Install nuget package TBD
+- Install nuget packages
+
+```sh
+dotnet add package NYActor.Core
+dotnet add package NYActor.EventStore
+```
 
 ### Create your first in-memory Actor
 
