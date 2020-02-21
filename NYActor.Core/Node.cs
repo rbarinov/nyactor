@@ -5,7 +5,6 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using SimpleInjector;
 
 namespace NYActor.Core
@@ -28,14 +27,11 @@ namespace NYActor.Core
             _container = new Container();
 
             _messageQueue
-                .ObserveOn(ThreadPoolScheduler.Instance)
-                .SubscribeOn(ThreadPoolScheduler.Instance)
                 .Where(e => _actors.ContainsKey(e.Item1))
                 .GroupBy(e => e.Item1)
                 .SelectMany(g => g
-                    .Select(e => Observable.FromAsync(() => _actors[g.Key].OnMessageEnqueued(e.Item2),
-                        ThreadPoolScheduler.Instance))
-                    .Merge(1)
+                    .Select(e => Observable.FromAsync(() => _actors[g.Key].OnMessageEnqueued(e.Item2)))
+                    .Concat()
                 )
                 .Subscribe();
         }

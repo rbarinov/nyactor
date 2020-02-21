@@ -10,14 +10,14 @@ namespace NYActor.Core
 
         internal async Task Activate()
         {
-            await OnActivated();
+            await OnActivated().ConfigureAwait(false);
         }
 
         protected virtual Task OnActivated() => Task.CompletedTask;
 
         internal async Task Deactivate()
         {
-            await OnDeactivated();
+            await OnDeactivated().ConfigureAwait(false);
         }
 
         protected virtual Task OnDeactivated() => Task.CompletedTask;

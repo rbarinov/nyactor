@@ -46,7 +46,7 @@ namespace NYActor.EventStore
                     null
                 ));
 
-            await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents);
+            await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents).ConfigureAwait(false);
 
             foreach (var @event in events)
             {
@@ -57,7 +57,7 @@ namespace NYActor.EventStore
 
         protected override async Task OnActivated()
         {
-            await base.OnActivated();
+            await base.OnActivated().ConfigureAwait(false);
 
             const int batchSize = 4096;
 
@@ -104,7 +104,7 @@ namespace NYActor.EventStore
 
             activationSubject.OnCompleted();
 
-            await tcs.Task;
+            await tcs.Task.ConfigureAwait(false);
 
             activationSubject.Dispose();
         }

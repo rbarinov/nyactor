@@ -1,5 +1,6 @@
 using System;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleInjector;
@@ -26,23 +27,24 @@ namespace NYActor.Core
             {
                 if (messageQueueItem == PoisonPill.Default && _actor != null)
                 {
-                    await DeactivateActorInstance();
+                    await DeactivateActorInstance().ConfigureAwait(false);
                     return;
                 }
 
                 if (_actor == null)
                 {
-                    await ActivateActorInstance();
+                    await ActivateActorInstance().ConfigureAwait(false);
                 }
 
-                var res = await messageQueueItem.Req(_actor);
+                var res = await Task.Run(() => messageQueueItem.Req(_actor)).ConfigureAwait(false);
+
                 messageQueueItem.Tsc.SetResult(res);
 
                 ThrottleDeactivation(DateTime.UtcNow);
             }
             catch (Exception ex)
             {
-                await DeactivateActorInstance();
+                await DeactivateActorInstance().ConfigureAwait(false);
                 messageQueueItem.Tsc.SetException(ex);
             }
         }
@@ -82,14 +84,14 @@ namespace NYActor.Core
             _actor.Key = _key;
             _actor.Context = new ActorContext(this, _node);
 
-            await _actor.Activate();
+            await _actor.Activate().ConfigureAwait(false);
         }
 
         private async Task DeactivateActorInstance()
         {
             if (_actor != null)
             {
-                await _actor.Deactivate();
+                await _actor.Deactivate().ConfigureAwait(false);
                 _actor = null;
             }
         }
@@ -104,7 +106,7 @@ namespace NYActor.Core
                 Tsc = tcs
             }));
 
-            var res = await tcs.Task;
+            var res = await tcs.Task.ConfigureAwait(false);
 
             return (TResult) res;
         }
@@ -117,13 +119,13 @@ namespace NYActor.Core
             {
                 Req = async e =>
                 {
-                    await req((TActor) e);
+                    await req((TActor) e).ConfigureAwait(false);
                     return Unit.Default;
                 },
                 Tsc = tcs
             }));
 
-            await tcs.Task;
+            await tcs.Task.ConfigureAwait(false);
         }
 
         public override void Dispose()
