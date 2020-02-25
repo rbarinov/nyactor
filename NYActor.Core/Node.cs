@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
@@ -27,6 +28,7 @@ namespace NYActor.Core
             _container = new Container();
 
             _messageQueue
+                .ObserveOn(Scheduler.CurrentThread)
                 .Where(e => _actors.ContainsKey(e.Item1))
                 .GroupBy(e => e.Item1)
                 .SelectMany(g => g
