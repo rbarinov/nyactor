@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
@@ -65,8 +64,17 @@ namespace NYActor.Core
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 
-            var actorWrapperBase = _actors.GetOrAdd(actorPath, e => new ActorWrapper<TActor>(e, key, this, _container));
-            var actorWrapper = actorWrapperBase as ActorWrapper<TActor>;
+            ActorWrapper<TActor> actorWrapper;
+
+            if (!_actors.TryGetValue(actorPath, out var actor))
+            {
+                actor = new ActorWrapper<TActor>(actorPath, key, this, _container);
+                actorWrapper = _actors.GetOrAdd(actorPath, actor) as ActorWrapper<TActor>;
+            }
+            else
+            {
+                actorWrapper = actor as ActorWrapper<TActor>;
+            }
 
             return actorWrapper;
         }
