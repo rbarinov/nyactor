@@ -13,8 +13,8 @@ namespace NYActor.Core
         private readonly Subject<(string, MessageQueueItem)> _messageQueue = new Subject<(string, MessageQueueItem)>();
         internal IObserver<(string actorPath, MessageQueueItem messageQueueItem)> MessageQueueObserver => _messageQueue;
 
-        private readonly ConcurrentDictionary<string, ActorWrapperBase> _actors =
-            new ConcurrentDictionary<string, ActorWrapperBase>();
+        private readonly ConcurrentDictionary<string, Lazy<ActorWrapperBase>> _actors =
+            new ConcurrentDictionary<string, Lazy<ActorWrapperBase>>();
 
         private readonly Container _container;
 
@@ -29,7 +29,7 @@ namespace NYActor.Core
                 .Where(e => _actors.ContainsKey(e.Item1))
                 .GroupBy(e => e.Item1)
                 .SelectMany(g => g
-                    .Select(e => Observable.FromAsync(() => _actors[g.Key].OnMessageEnqueued(e.Item2)))
+                    .Select(e => Observable.FromAsync(() => _actors[g.Key].Value.OnMessageEnqueued(e.Item2)))
                     .Concat()
                 )
                 .Subscribe();
@@ -64,17 +64,14 @@ namespace NYActor.Core
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 
-            ActorWrapper<TActor> actorWrapper;
+            if (!_actors.ContainsKey(actorPath))
+            {
+                var actor = new Lazy<ActorWrapperBase>(() =>
+                    new ActorWrapper<TActor>(actorPath, key, this, _container));
+                _actors.TryAdd(actorPath, actor);
+            }
 
-            if (!_actors.TryGetValue(actorPath, out var actor))
-            {
-                actor = new ActorWrapper<TActor>(actorPath, key, this, _container);
-                actorWrapper = _actors.GetOrAdd(actorPath, actor) as ActorWrapper<TActor>;
-            }
-            else
-            {
-                actorWrapper = actor as ActorWrapper<TActor>;
-            }
+            var actorWrapper = _actors[actorPath].Value as ActorWrapper<TActor>;
 
             return actorWrapper;
         }
@@ -90,7 +87,7 @@ namespace NYActor.Core
 
             foreach (var wrapperBase in _actors)
             {
-                wrapperBase.Value.Dispose();
+                wrapperBase.Value.Value.Dispose();
             }
         }
     }
