@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
+using System.Threading.Tasks;
 using SimpleInjector;
 
 namespace NYActor.Core
@@ -29,8 +30,12 @@ namespace NYActor.Core
                 .Where(e => _actors.ContainsKey(e.Item1))
                 .GroupBy(e => e.Item1)
                 .SelectMany(g => g
-                    .Select(e => Observable.FromAsync(() => _actors[g.Key].Value.OnMessageEnqueued(e.Item2)))
-                    .Concat()
+                    .Select(e => Observable.Defer(() =>
+                        Observable.StartAsync(() =>
+                            Task.Factory
+                                .StartNew(() => _actors[g.Key].Value.OnMessageEnqueued(e.Item2))
+                                .Unwrap())))
+                    .Merge(1)
                 )
                 .Subscribe();
         }

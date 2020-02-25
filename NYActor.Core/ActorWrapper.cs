@@ -36,7 +36,7 @@ namespace NYActor.Core
                     await ActivateActorInstance().ConfigureAwait(false);
                 }
 
-                var res = await Task.Run(() => messageQueueItem.Req(_actor)).ConfigureAwait(false);
+                var res = await messageQueueItem.Req(_actor).ConfigureAwait(false);
 
                 messageQueueItem.Tsc.SetResult(res);
 
