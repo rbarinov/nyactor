@@ -175,6 +175,13 @@ namespace NYActor.Core
         public void DelayDeactivation(TimeSpan deactivationTimeout) =>
             SubscribeDeactivationWatchdog(deactivationTimeout);
 
+        public Task SendAsync<TMessage>(TMessage message)
+        {
+            var messageWrapper = new IngressActorMessage(message);
+            _ingressSubject.OnNext(messageWrapper);
+            return Task.CompletedTask;
+        }
+
         public async Task<TResult> InvokeAsync<TResult>(Func<TActor, Task<TResult>> req)
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
