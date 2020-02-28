@@ -18,7 +18,6 @@ namespace NYActor.Tests
         [Test]
         public async Task TestLoad()
         {
-            var key = "key";
             var node = new Node();
 
             var reqs = Enumerable.Range(1, 20000)
@@ -30,14 +29,14 @@ namespace NYActor.Tests
 
         public class LoadActor : Actor
         {
-            private bool isRunning = false;
+            private bool _isRunning = false;
 
             public Task Delay()
             {
-                if (isRunning) throw new InvalidOperationException();
+                if (_isRunning) throw new InvalidOperationException();
                 try
                 {
-                    isRunning = true;
+                    _isRunning = true;
                     for (int i = 0; i < 10000000; i++)
                     {
                     }
@@ -46,7 +45,7 @@ namespace NYActor.Tests
                 }
                 finally
                 {
-                    isRunning = false;
+                    _isRunning = false;
                 }
             }
         }

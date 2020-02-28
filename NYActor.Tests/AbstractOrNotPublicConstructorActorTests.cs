@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
 using NYActor.Core;
 

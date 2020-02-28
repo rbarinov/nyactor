@@ -1,5 +1,3 @@
-using NYActor.Core;
-
 namespace NYActor.EventStore
 {
     public interface IApplicable

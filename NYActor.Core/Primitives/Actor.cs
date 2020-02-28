@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace NYActor.Core
@@ -6,16 +5,18 @@ namespace NYActor.Core
     public class Actor
     {
         public string Key { get; internal set; }
-        internal IActorContext Context { get; set; }
+        public IActorContext Context { get; set; }
 
-        internal async Task Activate()
+        public async Task Activate()
         {
             await OnActivated().ConfigureAwait(false);
         }
 
+        public virtual Task OnMessage(object message) => Task.CompletedTask;
+
         protected virtual Task OnActivated() => Task.CompletedTask;
 
-        internal async Task Deactivate()
+        public async Task Deactivate()
         {
             await OnDeactivated().ConfigureAwait(false);
         }
