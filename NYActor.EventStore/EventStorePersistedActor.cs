@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
@@ -31,13 +31,16 @@ namespace NYActor.EventStore
         protected virtual string Stream => $"{GetType().FullName}-{Key}";
 
 
-        protected Task ApplyEventAsync<TEvent>(TEvent @event) where TEvent : class => ApplyEventsAsync(@event);
+        protected Task ApplySingleAsync<TEvent>(TEvent @event) where TEvent : class =>
+            ApplyMultipleAsync(Enumerable.Repeat(@event, 1));
 
-        protected async Task ApplyEventsAsync<TEvent>(params TEvent[] events) where TEvent : class
+        protected async Task ApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events) where TEvent : class
         {
-            if (!events.Any()) return;
+            var materializedEvents = events.ToList();
 
-            var esEvents = events
+            if (!materializedEvents.Any()) return;
+
+            var esEvents = materializedEvents
                 .Select(e => new EventData(
                     Guid.NewGuid(),
                     $"{e.GetType().FullName},{e.GetType().Assembly.GetName().Name}",
@@ -48,25 +51,52 @@ namespace NYActor.EventStore
 
             await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents).ConfigureAwait(false);
 
-            foreach (var @event in events)
+            foreach (var @event in materializedEvents)
             {
                 State.Apply(@event);
                 _version++;
             }
         }
 
+        protected virtual int ActivationEventReadBatchSize => 4096;
+
         protected override async Task OnActivated()
         {
             await base.OnActivated().ConfigureAwait(false);
 
-            const int batchSize = 4096;
+            await Observable.Create<ResolvedEvent>(async observer =>
+                {
+                    var read = 0;
 
-            var activationSubject = new Subject<ResolvedEvent>();
+                    try
+                    {
+                        do
+                        {
+                            var batch = await _eventStoreConnection.ReadStreamEventsForwardAsync(
+                                Stream,
+                                read,
+                                ActivationEventReadBatchSize,
+                                false
+                            );
 
-            var tcs = new TaskCompletionSource<Unit>();
+                            foreach (var @event in batch.Events)
+                            {
+                                observer.OnNext(@event);
+                            }
 
-            var activationTask = activationSubject
-                .Select(e =>
+                            read += batch.Events.Length;
+
+                            if (batch.IsEndOfStream) break;
+                        } while (true);
+
+                        observer.OnCompleted();
+                    }
+                    catch (Exception ex)
+                    {
+                        observer.OnError(ex);
+                    }
+                })
+                .Do(e =>
                 {
                     var json = Encoding.UTF8.GetString(e.Event.Data);
                     var typeName = e.Event.EventType;
@@ -76,37 +106,11 @@ namespace NYActor.EventStore
 
                     State.Apply(@event);
                     _version = version;
-
-                    return Unit.Default;
                 })
-                .Subscribe(e => { }, e => tcs.SetException(e), () => tcs.SetResult(Unit.Default));
-
-            var read = 0;
-
-            do
-            {
-                var batch = await _eventStoreConnection.ReadStreamEventsForwardAsync(
-                    Stream,
-                    read,
-                    batchSize,
-                    false
-                );
-
-                foreach (var @event in batch.Events)
-                {
-                    activationSubject.OnNext(@event);
-                }
-
-                read = batch.Events.Length;
-
-                if (batch.IsEndOfStream) break;
-            } while (true);
-
-            activationSubject.OnCompleted();
-
-            await tcs.Task.ConfigureAwait(false);
-
-            activationSubject.Dispose();
+                .IgnoreElements()
+                .DefaultIfEmpty()
+                .ToTask()
+                .ConfigureAwait(false);
         }
     }
 }

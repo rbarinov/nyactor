@@ -17,6 +17,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\NYActor.Core\NYActor.Core.csproj" />
+      <ProjectReference Include="..\NYActor.EventStore\NYActor.EventStore.csproj" />
     </ItemGroup>
 
 </Project>
