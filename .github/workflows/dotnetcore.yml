@@ -16,5 +16,8 @@ jobs:
     - name: Build with dotnet
       run: |
         dotnet pack -c Release -o packages
-        dotnet nuget push **/*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
+        for PACKAGE in packages/*.nupkg
+        do
+          dotnet nuget push $PACKAGE -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
+        done
       shell: bash
