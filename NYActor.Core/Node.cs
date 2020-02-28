@@ -45,7 +45,10 @@ namespace NYActor.Core
         public Node RegisterActorsFromAssembly(Assembly assembly)
         {
             assembly.GetTypes()
-                .Where(e => e.IsSubclassOf(typeof(Actor)))
+                .Where(e => e.IsSubclassOf(typeof(Actor)) &&
+                            !e.IsAbstract &&
+                            e.GetConstructors().Any(c => c.IsPublic)
+                            && !e.IsNotPublic)
                 .ToList()
                 .ForEach(e => _container.Register(e));
 
