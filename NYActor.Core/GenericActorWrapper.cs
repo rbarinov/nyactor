@@ -126,7 +126,7 @@ namespace NYActor.Core
             await _actor.Activate().ConfigureAwait(false);
         }
 
-        private void ThrottleDeactivation() => _deactivationWatchdogSubject.OnNext(Unit.Default);
+        private void ThrottleDeactivation() => _deactivationWatchdogSubject?.OnNext(Unit.Default);
 
         private void SubscribeDeactivationWatchdog(TimeSpan? deactivationTimeout = null)
         {
