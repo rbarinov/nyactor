@@ -6,12 +6,12 @@
         <Title>NYActor.Core</Title>
         <Authors>rbarinov</Authors>
         <PackageProjectUrl>https://github.com/rbarinov/nyactor</PackageProjectUrl>
-        <PackageVersion>2.2.0</PackageVersion>
+        <PackageVersion>2.3.0</PackageVersion>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="SimpleInjector" Version="4.9.0" />
-      <PackageReference Include="System.Reactive" Version="4.3.2" />
+      <PackageReference Include="SimpleInjector" Version="4.10.2" />
+      <PackageReference Include="System.Reactive" Version="4.4.1" />
     </ItemGroup>
 
 </Project>
