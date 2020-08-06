@@ -30,7 +30,7 @@ namespace NYActor.Tests
                 return Task.CompletedTask;
             }
 
-            protected async Task Foo()
+            public async Task Foo()
             {
                 // some job
                 await Task.Yield();
