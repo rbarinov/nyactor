@@ -75,11 +75,9 @@ namespace NYActor.Tests
                 Task.CompletedTask;
         }
 
-        public class BState : IApplicable
+        public class BState 
         {
-            public void Apply(object ev)
-            {
-            }
+            public int A { get; set; }
         }
 
         public class GenericState<T> : IApplicable

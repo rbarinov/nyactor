@@ -60,6 +60,14 @@ namespace NYActor.EventStore
 
         protected virtual int ActivationEventReadBatchSize => 4096;
 
+        protected virtual object DeserializeEvevnt(string typeName, string json)
+        {
+            var type = Type.GetType(typeName);
+            var @event = JsonConvert.DeserializeObject(json, type);
+
+            return @event;
+        }
+        
         protected override async Task OnActivated()
         {
             await base.OnActivated().ConfigureAwait(false);
@@ -100,8 +108,7 @@ namespace NYActor.EventStore
                 {
                     var json = Encoding.UTF8.GetString(e.Event.Data);
                     var typeName = e.Event.EventType;
-                    var type = Type.GetType(typeName);
-                    var @event = JsonConvert.DeserializeObject(json, type);
+                    var @event = DeserializeEvevnt(typeName, json);
                     var version = e.Event.EventNumber;
 
                     State.Apply(@event);
