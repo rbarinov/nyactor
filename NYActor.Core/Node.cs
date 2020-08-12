@@ -24,13 +24,18 @@ namespace NYActor.Core
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 
-            var lazyWrapper = _actorWrappers.GetOrAdd(
-                actorPath,
-                e => new Lazy<object>(
-                    () =>
-                        new GenericActorWrapper<TActor>(key, this, _container)
-                )
-            );
+            Lazy<object> lazyWrapper;
+
+            lock (_actorWrappers)
+            {
+                lazyWrapper = _actorWrappers.GetOrAdd(
+                    actorPath,
+                    e => new Lazy<object>(
+                        () =>
+                            new GenericActorWrapper<TActor>(key, this, _container)
+                    )
+                );
+            }
 
             var actorWrapper = lazyWrapper.Value as IActorWrapper<TActor>;
 
