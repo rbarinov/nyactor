@@ -6,7 +6,7 @@
         <Title>NYActor.Core</Title>
         <Authors>rbarinov</Authors>
         <PackageProjectUrl>https://github.com/rbarinov/nyactor</PackageProjectUrl>
-        <PackageVersion>2.4.0</PackageVersion>
+        <PackageVersion>2.5.0</PackageVersion>
     </PropertyGroup>
 
     <ItemGroup>

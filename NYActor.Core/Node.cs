@@ -24,21 +24,25 @@ namespace NYActor.Core
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 
-            if (!_actorWrappers.ContainsKey(actorPath))
-            {
-                var actor = new Lazy<object>(() =>
-                    new GenericActorWrapper<TActor>(key, this, _container));
+            var lazyWrapper = _actorWrappers.GetOrAdd(
+                actorPath,
+                e => new Lazy<object>(
+                    () =>
+                        new GenericActorWrapper<TActor>(key, this, _container)
+                )
+            );
 
-                _actorWrappers.TryAdd(actorPath, actor);
-            }
-
-            var actorWrapper = _actorWrappers[actorPath].Value as IActorWrapper<TActor>;
+            var actorWrapper = lazyWrapper.Value as IActorWrapper<TActor>;
 
             return actorWrapper;
         }
 
         public IActorWrapper<TActor> GetActor<TActor>() where TActor : Actor =>
-            GetActor<TActor>(Guid.NewGuid().ToString().ToLower());
+            GetActor<TActor>(
+                Guid.NewGuid()
+                    .ToString()
+                    .ToLower()
+            );
 
         public void Dispose()
         {
@@ -53,10 +57,13 @@ namespace NYActor.Core
         public Node RegisterActorsFromAssembly(Assembly assembly)
         {
             assembly.GetTypes()
-                .Where(e => e.IsSubclassOf(typeof(Actor)) &&
-                            !e.IsAbstract &&
-                            e.GetConstructors().Any(c => c.IsPublic)
-                            && !e.IsNotPublic)
+                .Where(
+                    e => e.IsSubclassOf(typeof(Actor)) &&
+                         !e.IsAbstract &&
+                         e.GetConstructors()
+                             .Any(c => c.IsPublic)
+                         && !e.IsNotPublic
+                )
                 .ToList()
                 .ForEach(e => _container.Register(e));
 
@@ -75,6 +82,7 @@ namespace NYActor.Core
         public Node OverrideDefaultDeactivationTimeout(TimeSpan actorDeactivationInterval)
         {
             DefaultActorDeactivationTimeout = actorDeactivationInterval;
+
             return this;
         }
     }
