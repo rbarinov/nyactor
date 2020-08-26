@@ -2,25 +2,34 @@ using System.Threading.Tasks;
 
 namespace NYActor.Core
 {
-    public class Actor
+    public class Actor : IActor
     {
         public string Key { get; internal set; }
         public IActorContext Context { get; set; }
 
         public async Task Activate()
         {
-            await OnActivated().ConfigureAwait(false);
+            await OnActivated()
+                .ConfigureAwait(false);
         }
 
-        public virtual Task OnMessage(object message) => Task.CompletedTask;
+        public virtual Task OnMessage(object message) =>
+            Task.CompletedTask;
 
-        protected virtual Task OnActivated() => Task.CompletedTask;
+        protected virtual Task OnActivated() =>
+            Task.CompletedTask;
 
         public async Task Deactivate()
         {
-            await OnDeactivated().ConfigureAwait(false);
+            await OnDeactivated()
+                .ConfigureAwait(false);
         }
 
-        protected virtual Task OnDeactivated() => Task.CompletedTask;
+        protected virtual Task OnDeactivated() =>
+            Task.CompletedTask;
+    }
+
+    public interface IActor
+    {
     }
 }
