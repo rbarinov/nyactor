@@ -6,6 +6,7 @@ using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
+using EventStore.ClientAPI.Exceptions;
 using Newtonsoft.Json;
 using NYActor.Core;
 
@@ -49,7 +50,17 @@ namespace NYActor.EventStore
                     null
                 ));
 
-            await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents).ConfigureAwait(false);
+            try
+            {
+                await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents).ConfigureAwait(false);
+            }
+            catch (WrongExpectedVersionException e)
+            {
+                if (e.ActualVersion != _version + 1)
+                {
+                    throw;
+                }
+            }
 
             foreach (var @event in materializedEvents)
             {
