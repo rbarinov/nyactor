@@ -27,10 +27,15 @@ namespace NYActor.Core
             _container = container;
 
             _ingressSubscription = _ingressSubject
-                .Select(e => Observable
-                    .Defer(() => Observable
-                        .StartAsync(() => Task.Factory.StartNew(() => HandleIngressMessage(e)).Unwrap())
-                    )
+                .Select(
+                    e => Observable
+                        .Defer(
+                            () => Observable
+                                .StartAsync(
+                                    () => Task.Factory.StartNew(() => HandleIngressMessage(e))
+                                        .Unwrap()
+                                )
+                        )
                 )
                 .Merge(1)
                 .Subscribe();
@@ -38,13 +43,15 @@ namespace NYActor.Core
 
         private async Task HandleIngressMessage(ActorMessage actorMessage)
         {
-            if (actorMessage is PoisonPill)
+            //todo
+            if (actorMessage is PoisonPill || (actorMessage as IngressActorMessage)?.Payload is PoisonPill)
             {
                 if (_actor != null)
                 {
                     try
                     {
-                        await DeactivateActorInstance().ConfigureAwait(false);
+                        await DeactivateActorInstance()
+                            .ConfigureAwait(false);
                     }
                     catch (Exception)
                     {
@@ -59,7 +66,8 @@ namespace NYActor.Core
             {
                 try
                 {
-                    await ActivateActorInstance().ConfigureAwait(false);
+                    await ActivateActorInstance()
+                        .ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
@@ -80,7 +88,8 @@ namespace NYActor.Core
                     {
                         try
                         {
-                            await DeactivateActorInstance().ConfigureAwait(false);
+                            await DeactivateActorInstance()
+                                .ConfigureAwait(false);
                         }
                         catch (Exception)
                         {
@@ -89,17 +98,21 @@ namespace NYActor.Core
                     }
 
                     break;
+
                 case IngressAskMessage ingressAskMessage:
                     try
                     {
-                        var response = await ingressAskMessage.Invoke(_actor).ConfigureAwait(false);
+                        var response = await ingressAskMessage.Invoke(_actor)
+                            .ConfigureAwait(false);
+
                         ingressAskMessage.TaskCompletionSource.TrySetResult(response);
                     }
                     catch (Exception ex)
                     {
                         try
                         {
-                            await DeactivateActorInstance().ConfigureAwait(false);
+                            await DeactivateActorInstance()
+                                .ConfigureAwait(false);
                         }
                         catch (Exception)
                         {
@@ -123,10 +136,12 @@ namespace NYActor.Core
 
             SubscribeDeactivationWatchdog();
 
-            await _actor.Activate().ConfigureAwait(false);
+            await _actor.Activate()
+                .ConfigureAwait(false);
         }
 
-        private void ThrottleDeactivation() => _deactivationWatchdogSubject?.OnNext(Unit.Default);
+        private void ThrottleDeactivation() =>
+            _deactivationWatchdogSubject?.OnNext(Unit.Default);
 
         private void SubscribeDeactivationWatchdog(TimeSpan? deactivationTimeout = null)
         {
@@ -155,7 +170,8 @@ namespace NYActor.Core
             {
                 try
                 {
-                    await _actor.Deactivate().ConfigureAwait(false);
+                    await _actor.Deactivate()
+                        .ConfigureAwait(false);
                 }
                 finally
                 {
@@ -167,7 +183,9 @@ namespace NYActor.Core
 
         public void Dispose()
         {
-            DeactivateActorInstance().Wait();
+            DeactivateActorInstance()
+                .Wait();
+
             _ingressSubscription.Dispose();
             _ingressSubject.Dispose();
         }
@@ -179,6 +197,7 @@ namespace NYActor.Core
         {
             var messageWrapper = new IngressActorMessage(message);
             _ingressSubject.OnNext(messageWrapper);
+
             return Task.CompletedTask;
         }
 
@@ -186,10 +205,12 @@ namespace NYActor.Core
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
 
-            _ingressSubject.OnNext(new IngressAskMessage(
-                async e => (object) await req((TActor) e),
-                taskCompletionSource
-            ));
+            _ingressSubject.OnNext(
+                new IngressAskMessage(
+                    async e => (object) await req((TActor) e),
+                    taskCompletionSource
+                )
+            );
 
             var response = await taskCompletionSource.Task.ConfigureAwait(false);
 
@@ -200,14 +221,17 @@ namespace NYActor.Core
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
 
-            _ingressSubject.OnNext(new IngressAskMessage(
-                async e =>
-                {
-                    await req((TActor) e);
-                    return Unit.Default;
-                },
-                taskCompletionSource
-            ));
+            _ingressSubject.OnNext(
+                new IngressAskMessage(
+                    async e =>
+                    {
+                        await req((TActor) e);
+
+                        return Unit.Default;
+                    },
+                    taskCompletionSource
+                )
+            );
 
             await taskCompletionSource.Task.ConfigureAwait(false);
         }
