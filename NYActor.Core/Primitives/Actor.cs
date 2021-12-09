@@ -4,7 +4,7 @@ namespace NYActor.Core
 {
     public class Actor : IActor
     {
-        public string Key { get; internal set; }
+        public string Key { get; set; }
         public IActorContext Context { get; set; }
 
         public async Task Activate()

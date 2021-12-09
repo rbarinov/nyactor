@@ -12,7 +12,13 @@ using NYActor.Core;
 
 namespace NYActor.EventStore
 {
-    public abstract class EventStorePersistedActor<TState> : Actor
+    public interface ITestableEventStorePersistedActor
+    {
+        Task UnsafeApplySingleAsync<TEvent>(TEvent @event) where TEvent : class;
+        Task UnsafeApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events) where TEvent : class;
+    }
+
+    public abstract class EventStorePersistedActor<TState> : Actor, ITestableEventStorePersistedActor
         where TState : class, IApplicable, new()
     {
         private readonly IEventStoreConnection _eventStoreConnection;
@@ -31,9 +37,14 @@ namespace NYActor.EventStore
 
         protected virtual string Stream => $"{GetType().FullName}-{Key}";
 
+        public Task UnsafeApplySingleAsync<TEvent>(TEvent @event) where TEvent : class =>
+            ApplySingleAsync(@event);
 
         protected Task ApplySingleAsync<TEvent>(TEvent @event) where TEvent : class =>
             ApplyMultipleAsync(Enumerable.Repeat(@event, 1));
+
+        public Task UnsafeApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events) where TEvent : class =>
+            ApplyMultipleAsync(events);
 
         protected async Task ApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events) where TEvent : class
         {
@@ -42,17 +53,20 @@ namespace NYActor.EventStore
             if (!materializedEvents.Any()) return;
 
             var esEvents = materializedEvents
-                .Select(e => new EventData(
-                    Guid.NewGuid(),
-                    $"{e.GetType().FullName},{e.GetType().Assembly.GetName().Name}",
-                    true,
-                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(e)),
-                    null
-                ));
+                .Select(
+                    e => new EventData(
+                        Guid.NewGuid(),
+                        $"{e.GetType().FullName},{e.GetType().Assembly.GetName().Name}",
+                        true,
+                        Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(e)),
+                        null
+                    )
+                );
 
             try
             {
-                await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents).ConfigureAwait(false);
+                await _eventStoreConnection.AppendToStreamAsync(Stream, _version, esEvents)
+                    .ConfigureAwait(false);
             }
             catch (WrongExpectedVersionException e)
             {
@@ -78,53 +92,58 @@ namespace NYActor.EventStore
 
             return @event;
         }
-        
+
         protected override async Task OnActivated()
         {
-            await base.OnActivated().ConfigureAwait(false);
+            await base.OnActivated()
+                .ConfigureAwait(false);
 
-            await Observable.Create<ResolvedEvent>(async observer =>
-                {
-                    var read = 0;
-
-                    try
+            await Observable.Create<ResolvedEvent>(
+                    async observer =>
                     {
-                        do
+                        var read = 0;
+
+                        try
                         {
-                            var batch = await _eventStoreConnection.ReadStreamEventsForwardAsync(
-                                Stream,
-                                read,
-                                ActivationEventReadBatchSize,
-                                false
-                            );
-
-                            foreach (var @event in batch.Events)
+                            do
                             {
-                                observer.OnNext(@event);
-                            }
+                                var batch = await _eventStoreConnection.ReadStreamEventsForwardAsync(
+                                    Stream,
+                                    read,
+                                    ActivationEventReadBatchSize,
+                                    false
+                                );
 
-                            read += batch.Events.Length;
+                                foreach (var @event in batch.Events)
+                                {
+                                    observer.OnNext(@event);
+                                }
 
-                            if (batch.IsEndOfStream) break;
-                        } while (true);
+                                read += batch.Events.Length;
 
-                        observer.OnCompleted();
+                                if (batch.IsEndOfStream) break;
+                            } while (true);
+
+                            observer.OnCompleted();
+                        }
+                        catch (Exception ex)
+                        {
+                            observer.OnError(ex);
+                        }
                     }
-                    catch (Exception ex)
+                )
+                .Do(
+                    e =>
                     {
-                        observer.OnError(ex);
-                    }
-                })
-                .Do(e =>
-                {
-                    var json = Encoding.UTF8.GetString(e.Event.Data);
-                    var typeName = e.Event.EventType;
-                    var @event = DeserializeEvevnt(typeName, json);
-                    var version = e.Event.EventNumber;
+                        var json = Encoding.UTF8.GetString(e.Event.Data);
+                        var typeName = e.Event.EventType;
+                        var @event = DeserializeEvevnt(typeName, json);
+                        var version = e.Event.EventNumber;
 
-                    State.Apply(@event);
-                    _version = version;
-                })
+                        State.Apply(@event);
+                        _version = version;
+                    }
+                )
                 .IgnoreElements()
                 .DefaultIfEmpty()
                 .ToTask()
