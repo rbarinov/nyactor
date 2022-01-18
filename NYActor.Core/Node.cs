@@ -20,7 +20,7 @@ namespace NYActor.Core
             _container = new Container();
         }
 
-        public IActorWrapper<TActor> GetActor<TActor>(string key) where TActor : Actor
+        public virtual IActorWrapper<TActor> GetActor<TActor>(string key) where TActor : Actor
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 

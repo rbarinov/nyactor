@@ -41,8 +41,12 @@ namespace NYActor.Core
                 .Subscribe();
         }
 
+        internal ActorExecutionContext ExecutionContext { get; private set; }
+
         private async Task HandleIngressMessage(ActorMessage actorMessage)
         {
+            ExecutionContext = null;
+
             //todo
             if (actorMessage is PoisonPill || (actorMessage as IngressActorMessage)?.Payload is PoisonPill)
             {
@@ -102,6 +106,8 @@ namespace NYActor.Core
                 case IngressAskMessage ingressAskMessage:
                     try
                     {
+                        ExecutionContext = ingressAskMessage.ExecutionContext;
+
                         var response = await ingressAskMessage.Invoke(_actor)
                             .ConfigureAwait(false);
 
@@ -120,6 +126,10 @@ namespace NYActor.Core
                         }
 
                         ingressAskMessage.TaskCompletionSource.TrySetException(ex);
+                    }
+                    finally
+                    {
+                        ExecutionContext = null;
                     }
 
                     break;
@@ -201,14 +211,18 @@ namespace NYActor.Core
             return Task.CompletedTask;
         }
 
-        public async Task<TResult> InvokeAsync<TResult>(Func<TActor, Task<TResult>> req)
+        public async Task<TResult> InvokeAsync<TResult>(
+            Func<TActor, Task<TResult>> req,
+            ActorExecutionContext executionContext
+        )
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
 
             _ingressSubject.OnNext(
                 new IngressAskMessage(
                     async e => (object) await req((TActor) e),
-                    taskCompletionSource
+                    taskCompletionSource,
+                    executionContext
                 )
             );
 
@@ -217,7 +231,7 @@ namespace NYActor.Core
             return (TResult) response;
         }
 
-        public async Task InvokeAsync(Func<TActor, Task> req)
+        public async Task InvokeAsync(Func<TActor, Task> req, ActorExecutionContext executionContext)
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
 
@@ -229,7 +243,8 @@ namespace NYActor.Core
 
                         return Unit.Default;
                     },
-                    taskCompletionSource
+                    taskCompletionSource,
+                    executionContext
                 )
             );
 
