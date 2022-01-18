@@ -17,7 +17,7 @@ public class Client : IClient
     public Task<string> A(Dictionary<string, string> headers)
     {
         // @todo inject headers
-        return Task.FromResult(headers.GetValueOrDefault("key") ?? "default");
+        return Task.FromResult(headers?.GetValueOrDefault("key") ?? "default");
     }
 }
 
@@ -49,10 +49,32 @@ public class MyActor : Actor
     }
 }
 
-public class DITests
+public class FacadeActor : Actor
+{
+    public async Task<string> FacadeJob()
+    {
+        var chain = this.System()
+            .GetActor<MyActor>(Key);
+
+        return await chain.InvokeAsync(e => e.Job());
+    }
+}
+
+public class DoubleFacadeActor : Actor
+{
+    public async Task<string> DoubleFacadeJob()
+    {
+        var chain = this.System()
+            .GetActor<FacadeActor>(Key);
+
+        return await chain.InvokeAsync(e => e.FacadeJob());
+    }
+}
+
+public class RequestPropagationTest
 {
     [Test]
-    public async Task Test()
+    public async Task TestDirect()
     {
         var client = new Client();
 
@@ -80,7 +102,8 @@ public class DITests
         var noReqActorSystem = new RequestPropagationNodeWrapper(node, executionContext);
         actor = noReqActorSystem.GetActor<MyActor>(key);
         var res = await actor.InvokeAsync(e => e.Job());
-        
+        Assert.AreEqual("1 noreq-context", res);
+
         // req x-1
 
         executionContext =
@@ -94,6 +117,7 @@ public class DITests
         var req1Context = new RequestPropagationNodeWrapper(node, executionContext);
         actor = req1Context.GetActor<MyActor>(key);
         res = await actor.InvokeAsync(e => e.Job());
+        Assert.AreEqual("1 req1-context", res);
 
         // req x-2
 
@@ -109,5 +133,69 @@ public class DITests
 
         actor = req2Context.GetActor<MyActor>(key);
         res = await actor.InvokeAsync(e => e.Job());
+        Assert.AreEqual("1 req2-context", res);
+    }
+
+    [Test]
+    public async Task TestFacade()
+    {
+        var client = new Client();
+
+        var node = new Node()
+                .ConfigureInjector(
+                    e => { e.RegisterInstance<IClient>(new Client()); }
+                )
+                .RegisterActorsFromAssembly(typeof(MyActor).Assembly)
+            ;
+
+        string key = nameof(key);
+
+        IActorWrapper<DoubleFacadeActor> actor;
+
+        // no req
+
+        var executionContext =
+            new RequestPropagationExecutionContext(
+                new Dictionary<string, string>
+                {
+                    {"key", "noreq-context"}
+                }
+            );
+
+        var noReqActorSystem = new RequestPropagationNodeWrapper(node, executionContext);
+        actor = noReqActorSystem.GetActor<DoubleFacadeActor>(key);
+        var res = await actor.InvokeAsync(e => e.DoubleFacadeJob());
+        Assert.AreEqual("1 noreq-context", res);
+
+        // req x-1
+
+        executionContext =
+            new RequestPropagationExecutionContext(
+                new Dictionary<string, string>
+                {
+                    {"key", "req1-context"}
+                }
+            );
+
+        var req1Context = new RequestPropagationNodeWrapper(node, executionContext);
+        actor = req1Context.GetActor<DoubleFacadeActor>(key);
+        res = await actor.InvokeAsync(e => e.DoubleFacadeJob());
+        Assert.AreEqual("1 req1-context", res);
+
+        // req x-2
+
+        executionContext =
+            new RequestPropagationExecutionContext(
+                new Dictionary<string, string>
+                {
+                    {"key", "req2-context"}
+                }
+            );
+
+        var req2Context = new RequestPropagationNodeWrapper(node, executionContext);
+
+        actor = req2Context.GetActor<DoubleFacadeActor>(key);
+        res = await actor.InvokeAsync(e => e.DoubleFacadeJob());
+        Assert.AreEqual("1 req2-context", res);
     }
 }
