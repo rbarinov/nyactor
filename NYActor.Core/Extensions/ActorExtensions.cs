@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using NYActor.Core.RequestPropagation;
+
 namespace NYActor.Core.Extensions
 {
     public static class ActorExtensions
@@ -17,7 +20,15 @@ namespace NYActor.Core.Extensions
             where TContext : ActorExecutionContext =>
             executionContext as TContext;
 
-        public static IActorSystem System<TActor>(this TActor actor) where TActor : Actor =>
-            actor.Context.System;
+        public static IActorSystem System<TActor>(this TActor actor) where TActor : Actor
+        {
+            var requestPropagationExecutionContext = actor.ActorExecutionContext()
+                ?.To<RequestPropagationExecutionContext>();
+
+            if (requestPropagationExecutionContext == null)
+                return actor.Context.System;
+
+            return new RequestPropagationNodeWrapper(actor.Context.System, requestPropagationExecutionContext);
+        }
     }
 }
