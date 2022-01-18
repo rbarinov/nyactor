@@ -7,12 +7,15 @@ namespace NYActor.Core
     {
         public Func<Actor, Task<object>> Invoke { get; }
         public TaskCompletionSource<object> TaskCompletionSource { get; }
+        public ActorExecutionContext ExecutionContext { get; }
 
         public IngressAskMessage(Func<Actor, Task<object>> invoke,
-            TaskCompletionSource<object> taskCompletionSource)
+            TaskCompletionSource<object> taskCompletionSource,
+            ActorExecutionContext executionContext)
         {
             Invoke = invoke;
             TaskCompletionSource = taskCompletionSource;
+            ExecutionContext = executionContext;
         }
     }
 }

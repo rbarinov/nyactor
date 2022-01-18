@@ -5,6 +5,19 @@ namespace NYActor.Core.Extensions
         public static IActorWrapper<TActor> Self<TActor>(this TActor actor) where TActor : Actor =>
             actor.Context.Self.As<TActor>();
 
-        public static IActorSystem System<TActor>(this TActor actor) where TActor : Actor => actor.Context.System;
+        public static ActorExecutionContext ActorExecutionContext<TActor>(this TActor actor)
+            where TActor : Actor
+        {
+            var genericActorWrapper = actor.Self() as GenericActorWrapper<TActor>;
+
+            return genericActorWrapper?.ExecutionContext;
+        }
+
+        public static TContext To<TContext>(this ActorExecutionContext executionContext)
+            where TContext : ActorExecutionContext =>
+            executionContext as TContext;
+
+        public static IActorSystem System<TActor>(this TActor actor) where TActor : Actor =>
+            actor.Context.System;
     }
 }
