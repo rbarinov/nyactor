@@ -23,5 +23,6 @@ namespace NYActor.Core
 
     public class ActorExecutionContext
     {
+        public static readonly ActorExecutionContext Empty = null;
     }
 }

@@ -20,8 +20,13 @@ namespace NYActor.Core.Extensions
             where TContext : ActorExecutionContext =>
             executionContext as TContext;
 
-        public static IActorSystem System<TActor>(this TActor actor) where TActor : Actor
+        public static IActorSystem System<TActor>(this TActor actor, bool withEmptyExecutionContext = false) where TActor : Actor
         {
+            if (withEmptyExecutionContext)
+            {
+                return actor.Context.System;
+            }
+
             var requestPropagationExecutionContext = actor.ActorExecutionContext()
                 ?.To<RequestPropagationExecutionContext>();
 
