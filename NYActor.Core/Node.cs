@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using NYActor.Core.Extensions;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using SimpleInjector;
 
 namespace NYActor.Core
@@ -14,13 +19,14 @@ namespace NYActor.Core
             new ConcurrentDictionary<string, Lazy<object>>();
 
         public TimeSpan DefaultActorDeactivationTimeout = TimeSpan.FromMinutes(20);
+        public bool TracingEnabled = false;
 
         public Node()
         {
             _container = new Container();
         }
 
-        public virtual IActorWrapper<TActor> GetActor<TActor>(string key) where TActor : Actor
+        public virtual IExpressionCallable<TActor> GetActor<TActor>(string key) where TActor : Actor
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 
@@ -39,10 +45,10 @@ namespace NYActor.Core
 
             var actorWrapper = lazyWrapper.Value as IActorWrapper<TActor>;
 
-            return actorWrapper;
+            return new ExpressionCallable<TActor>(actorWrapper);
         }
 
-        public IActorWrapper<TActor> GetActor<TActor>() where TActor : Actor =>
+        public IExpressionCallable<TActor> GetActor<TActor>() where TActor : Actor =>
             GetActor<TActor>(
                 Guid.NewGuid()
                     .ToString()
@@ -71,6 +77,36 @@ namespace NYActor.Core
                 )
                 .ToList()
                 .ForEach(e => _container.Register(e));
+
+            return this;
+        }
+
+        public Node RegisterTraceProvider(string host, int port)
+        {
+            var assembly = Assembly.GetEntryAssembly()
+                ?.GetName()
+                ?.Name
+                ?.ToLowerInvariant();
+
+            var tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .AddSource(assembly)
+                .SetResourceBuilder(
+                    ResourceBuilder.CreateDefault()
+                        .AddService(serviceName: assembly)
+                )
+                .AddJaegerExporter(
+                    o =>
+                    {
+                        o.AgentHost = host;
+                        o.AgentPort = port;
+                    }
+                )
+                .Build();
+
+            _container.RegisterInstance(tracerProvider);
+            _container.RegisterInstance(new ActivitySource(assembly));
+
+            TracingEnabled = true;
 
             return this;
         }

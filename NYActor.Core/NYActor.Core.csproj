@@ -6,10 +6,14 @@
         <Title>NYActor.Core</Title>
         <Authors>rbarinov</Authors>
         <PackageProjectUrl>https://github.com/rbarinov/nyactor</PackageProjectUrl>
-        <PackageVersion>2.12.0</PackageVersion>
+        <PackageVersion>2.13.0</PackageVersion>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+      <PackageReference Include="OpenTelemetry" Version="1.2.0-rc1" />
+      <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.2.0-rc1" />
+      <PackageReference Include="OpenTelemetry.Exporter.Jaeger" Version="1.2.0-rc1" />
       <PackageReference Include="SimpleInjector" Version="4.10.2" />
       <PackageReference Include="System.Reactive" Version="4.4.1" />
     </ItemGroup>

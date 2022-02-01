@@ -1,8 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
+using NYActor.Core.Extensions;
+using NYActor.Core.RequestPropagation;
+using OpenTelemetry.Trace;
 using SimpleInjector;
 
 namespace NYActor.Core
@@ -19,12 +24,15 @@ namespace NYActor.Core
 
         private Subject<Unit> _deactivationWatchdogSubject = null;
         private IDisposable _deactivationWatchdogSubscription = null;
+        private readonly string _fullName;
 
         public GenericActorWrapper(string key, Node node, Container container)
         {
             _key = key;
             _node = node;
             _container = container;
+
+            _fullName = $"{typeof(TActor).FullName}-{_key}";
 
             _ingressSubscription = _ingressSubject
                 .Select(
@@ -42,6 +50,74 @@ namespace NYActor.Core
         }
 
         internal ActorExecutionContext ExecutionContext { get; private set; }
+        internal Activity Activity { get; private set; }
+
+        private Activity CreateActivity(ActorExecutionContext executionContext, string callName)
+        {
+            if (_node.TracingEnabled)
+            {
+                var activitySource = _container.GetInstance<ActivitySource>();
+                Activity.Current = null;
+                ExecutionContext = executionContext;
+                var context = ExecutionContext?.To<RequestPropagationExecutionContext>();
+
+                var activityContext = context != null
+                    ? (ActivityContext?)new ActivityContext(
+                        ActivityTraceId.CreateFromString(context.RequestPropagationValues["x-b3-traceid"]),
+                        ActivitySpanId.CreateFromString(context.RequestPropagationValues["x-b3-spanid"]),
+                        ActivityTraceFlags.Recorded
+                    )
+                    : null;
+
+                var headers = ExecutionContext?.To<RequestPropagationExecutionContext>()
+                    ?.RequestPropagationValues;
+
+                var activity = activityContext != null
+                    ? activitySource.StartActivity(
+                        $"{_fullName}: {callName}",
+                        ActivityKind.Server,
+                        activityContext.Value
+                    )
+                    : activitySource.StartActivity(
+                        $"{_fullName}: {callName}",
+                        ActivityKind.Server
+                    );
+
+                if (activity != null)
+                {
+                    if (headers != null)
+                    {
+                        var updated = new Dictionary<string, string>(headers)
+                        {
+                            ["x-b3-traceid"] = activity.TraceId.ToString(),
+                            ["x-b3-spanid"] = activity.SpanId.ToString()
+                        };
+
+                        ExecutionContext = new RequestPropagationExecutionContext(updated);
+                    }
+                    else
+                    {
+                        var updated = new Dictionary<string, string>()
+                        {
+                            ["x-request-id"] = Guid.NewGuid()
+                                .ToString(),
+                            ["x-b3-traceid"] = activity.TraceId.ToString(),
+                            ["x-b3-spanid"] = activity.SpanId.ToString(),
+                            ["x-b3-sampled"] = "1"
+                            // { "x-b3-parentspanid", "" },
+                            // { "x-b3-flags", "" },
+                            // { "x-ot-span-context", "" },
+                        };
+
+                        ExecutionContext = new RequestPropagationExecutionContext(updated);
+                    }
+                }
+
+                return activity;
+            }
+
+            return null;
+        }
 
         private async Task HandleIngressMessage(ActorMessage actorMessage)
         {
@@ -104,10 +180,11 @@ namespace NYActor.Core
                     break;
 
                 case IngressAskMessage ingressAskMessage:
+                {
+                    Activity = CreateActivity(ingressAskMessage.ExecutionContext, ingressAskMessage.CallName);
+
                     try
                     {
-                        ExecutionContext = ingressAskMessage.ExecutionContext;
-
                         var response = await ingressAskMessage.Invoke(_actor)
                             .ConfigureAwait(false);
 
@@ -126,13 +203,18 @@ namespace NYActor.Core
                         }
 
                         ingressAskMessage.TaskCompletionSource.TrySetException(ex);
+
+                        Activity?.RecordException(ex);
+                        Activity?.SetStatus(Status.Error.WithDescription(ex.Message));
                     }
                     finally
                     {
+                        Activity?.Dispose();
                         ExecutionContext = null;
                     }
 
                     break;
+                }
             }
 
             ThrottleDeactivation();
@@ -213,6 +295,7 @@ namespace NYActor.Core
 
         public async Task<TResult> InvokeAsync<TResult>(
             Func<TActor, Task<TResult>> req,
+            string callName,
             ActorExecutionContext executionContext
         )
         {
@@ -220,18 +303,19 @@ namespace NYActor.Core
 
             _ingressSubject.OnNext(
                 new IngressAskMessage(
-                    async e => (object) await req((TActor) e),
+                    async e => (object)await req((TActor)e),
                     taskCompletionSource,
+                    callName,
                     executionContext
                 )
             );
 
             var response = await taskCompletionSource.Task.ConfigureAwait(false);
 
-            return (TResult) response;
+            return (TResult)response;
         }
 
-        public async Task InvokeAsync(Func<TActor, Task> req, ActorExecutionContext executionContext)
+        public async Task InvokeAsync(Func<TActor, Task> req, string callName, ActorExecutionContext executionContext)
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
 
@@ -239,11 +323,12 @@ namespace NYActor.Core
                 new IngressAskMessage(
                     async e =>
                     {
-                        await req((TActor) e);
+                        await req((TActor)e);
 
                         return Unit.Default;
                     },
                     taskCompletionSource,
+                    callName,
                     executionContext
                 )
             );

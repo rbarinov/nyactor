@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace NYActor.Core.RequestPropagation
@@ -29,15 +30,36 @@ namespace NYActor.Core.RequestPropagation
 
         public Task<TResult> InvokeAsync<TResult>(
             Func<TActor, Task<TResult>> req,
+            string callName,
             ActorExecutionContext executionContext
         )
         {
-            return Actor.InvokeAsync(req, RequestPropagationExecutionContext);
+            return Actor.InvokeAsync(
+                req,
+                callName,
+                executionContext != ActorExecutionContext.Empty && RequestPropagationExecutionContext != null
+                    ? new RequestPropagationExecutionContext(
+                        new Dictionary<string, string>(RequestPropagationExecutionContext?.RequestPropagationValues)
+                    )
+                    : ActorExecutionContext.Empty
+            );
         }
 
-        public Task InvokeAsync(Func<TActor, Task> req, ActorExecutionContext executionContext)
+        public Task InvokeAsync(
+            Func<TActor, Task> req,
+            string callName,
+            ActorExecutionContext executionContext
+        )
         {
-            return Actor.InvokeAsync(req, RequestPropagationExecutionContext);
+            return Actor.InvokeAsync(
+                req,
+                callName,
+                executionContext != ActorExecutionContext.Empty && RequestPropagationExecutionContext != null
+                    ? new RequestPropagationExecutionContext(
+                        new Dictionary<string, string>(RequestPropagationExecutionContext?.RequestPropagationValues)
+                    )
+                    : ActorExecutionContext.Empty
+            );
         }
     }
 }
