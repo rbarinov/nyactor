@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace NYActor.Core
@@ -24,6 +23,6 @@ namespace NYActor.Core
 
     public class ActorExecutionContext
     {
-        public static readonly ActorExecutionContext Empty = null;
+        public static readonly ActorExecutionContext Empty = new ActorExecutionContext();
     }
 }

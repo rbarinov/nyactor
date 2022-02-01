@@ -1,6 +1,6 @@
 using System;
+using System.Diagnostics;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NYActor.Core.RequestPropagation;
@@ -87,6 +87,14 @@ namespace NYActor.Core.Extensions
             var genericActorWrapper = actor.Self() as GenericActorWrapper<TActor>;
 
             return genericActorWrapper?.ExecutionContext;
+        }
+
+        public static Activity ActorActivity<TActor>(this TActor actor)
+            where TActor : Actor
+        {
+            var genericActorWrapper = actor.Self() as GenericActorWrapper<TActor>;
+
+            return genericActorWrapper?.Activity;
         }
 
         public static TContext To<TContext>(this ActorExecutionContext executionContext)
