@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using NYActor.Core.Extensions;
 using SimpleInjector;
 
 namespace NYActor.Core
@@ -20,7 +21,7 @@ namespace NYActor.Core
             _container = new Container();
         }
 
-        public virtual IActorWrapper<TActor> GetActor<TActor>(string key) where TActor : Actor
+        public virtual IExpressionCallable<TActor> GetActor<TActor>(string key) where TActor : Actor
         {
             var actorPath = $"{typeof(TActor).FullName}-{key}";
 
@@ -39,10 +40,10 @@ namespace NYActor.Core
 
             var actorWrapper = lazyWrapper.Value as IActorWrapper<TActor>;
 
-            return actorWrapper;
+            return new ExpressionCallable<TActor>(actorWrapper);
         }
 
-        public IActorWrapper<TActor> GetActor<TActor>() where TActor : Actor =>
+        public IExpressionCallable<TActor> GetActor<TActor>() where TActor : Actor =>
             GetActor<TActor>(
                 Guid.NewGuid()
                     .ToString()

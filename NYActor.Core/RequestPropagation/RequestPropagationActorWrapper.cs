@@ -29,15 +29,16 @@ namespace NYActor.Core.RequestPropagation
 
         public Task<TResult> InvokeAsync<TResult>(
             Func<TActor, Task<TResult>> req,
+            string callName,
             ActorExecutionContext executionContext
         )
         {
-            return Actor.InvokeAsync(req, RequestPropagationExecutionContext);
+            return Actor.InvokeAsync(req, callName, RequestPropagationExecutionContext);
         }
 
-        public Task InvokeAsync(Func<TActor, Task> req, ActorExecutionContext executionContext)
+        public Task InvokeAsync(Func<TActor, Task> req, string callName, ActorExecutionContext executionContext)
         {
-            return Actor.InvokeAsync(req, RequestPropagationExecutionContext);
+            return Actor.InvokeAsync(req, callName, RequestPropagationExecutionContext);
         }
     }
 }

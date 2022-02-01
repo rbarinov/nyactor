@@ -87,7 +87,7 @@ public class RequestPropagationTest
 
         string key = nameof(key);
 
-        IActorWrapper<MyActor> actor;
+        IExpressionCallable<MyActor> actor;
 
         // no req
 
@@ -150,7 +150,7 @@ public class RequestPropagationTest
 
         string key = nameof(key);
 
-        IActorWrapper<DoubleFacadeActor> actor;
+        IExpressionCallable<DoubleFacadeActor> actor;
 
         // no req
 

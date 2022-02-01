@@ -213,6 +213,7 @@ namespace NYActor.Core
 
         public async Task<TResult> InvokeAsync<TResult>(
             Func<TActor, Task<TResult>> req,
+            string callName,
             ActorExecutionContext executionContext
         )
         {
@@ -222,6 +223,7 @@ namespace NYActor.Core
                 new IngressAskMessage(
                     async e => (object) await req((TActor) e),
                     taskCompletionSource,
+                    callName,
                     executionContext
                 )
             );
@@ -231,7 +233,7 @@ namespace NYActor.Core
             return (TResult) response;
         }
 
-        public async Task InvokeAsync(Func<TActor, Task> req, ActorExecutionContext executionContext)
+        public async Task InvokeAsync(Func<TActor, Task> req, string callName, ActorExecutionContext executionContext)
         {
             var taskCompletionSource = new TaskCompletionSource<object>();
 
@@ -244,6 +246,7 @@ namespace NYActor.Core
                         return Unit.Default;
                     },
                     taskCompletionSource,
+                    callName,
                     executionContext
                 )
             );

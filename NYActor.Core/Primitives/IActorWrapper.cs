@@ -15,10 +15,11 @@ namespace NYActor.Core
 
         Task<TResult> InvokeAsync<TResult>(
             Func<TActor, Task<TResult>> req,
+            string callName,
             ActorExecutionContext executionContext = null
         );
 
-        Task InvokeAsync(Func<TActor, Task> req, ActorExecutionContext executionContext = null);
+        Task InvokeAsync(Func<TActor, Task> req, string callName, ActorExecutionContext executionContext = null);
     }
 
     public class ActorExecutionContext

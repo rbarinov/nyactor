@@ -28,14 +28,14 @@ namespace NYActor.Tests
 
             await Task.Delay(1000);
 
-         var deadlock =    a.InvokeAsync(e => e.Wait());
+            var deadlock = a.InvokeAsync(e => e.Wait());
 
             await Task.Delay(20000);
 
             tsc.SetResult(Unit.Default);
 
             await deadlock;
-            
+
             await Task.Delay(1000);
 
             a.InvokeAsync(e => e.Wait());
@@ -44,9 +44,11 @@ namespace NYActor.Tests
 
         public class WatchdogClientActorA : WatchdogClientActor, IWatchdogClient
         {
-            protected override IActorWrapper<WatchdogActor> GetWatchDog() =>
+            protected override IExpressionCallable<WatchdogActor> GetWatchDog() =>
                 this.System()
-                    .GetActor<WatchdogActorA>(Key);
+                    .GetActor<WatchdogActorA>(Key)
+                    .Unwrap()
+                    .ToBaseRef<WatchdogActor>();
 
             public Task Foo() =>
                 Task.CompletedTask;
@@ -59,14 +61,16 @@ namespace NYActor.Tests
 
         public class WatchdogClientActorB : WatchdogClientActor, IWatchdogClient
         {
-            protected override IActorWrapper<WatchdogActor> GetWatchDog() =>
+            protected override IExpressionCallable<WatchdogActor> GetWatchDog() =>
                 this.System()
-                    .GetActor<WatchdogActorB>(Key);
+                    .GetActor<WatchdogActorB>(Key)
+                    .Unwrap()
+                    .ToBaseRef<WatchdogActor>();
         }
 
         public abstract class WatchdogClientActor : Actor
         {
-            protected abstract IActorWrapper<WatchdogActor> GetWatchDog();
+            protected abstract IExpressionCallable<WatchdogActor> GetWatchDog();
 
             protected override async Task OnActivated()
             {
@@ -93,7 +97,7 @@ namespace NYActor.Tests
 
         public abstract class WatchdogActor : Actor
         {
-            protected abstract IActorWrapper<IWatchdogClient> GetWatchdogClient();
+            protected abstract IExpressionCallable<IWatchdogClient> GetWatchdogClient();
 
             private ISubject<Unit> _unsubscribe;
 
@@ -131,16 +135,20 @@ namespace NYActor.Tests
 
         public class WatchdogActorA : WatchdogActor
         {
-            protected override IActorWrapper<IWatchdogClient> GetWatchdogClient() =>
+            protected override IExpressionCallable<IWatchdogClient> GetWatchdogClient() =>
                 this.System()
-                    .GetActor<WatchdogClientActorA>(Key);
+                    .GetActor<WatchdogClientActorA>(Key)
+                    .Unwrap()
+                    .ToBaseRef<IWatchdogClient>();
         }
 
         public class WatchdogActorB : WatchdogActor
         {
-            protected override IActorWrapper<IWatchdogClient> GetWatchdogClient() =>
+            protected override IExpressionCallable<IWatchdogClient> GetWatchdogClient() =>
                 this.System()
-                    .GetActor<WatchdogClientActorB>(Key);
+                    .GetActor<WatchdogClientActorB>(Key)
+                    .Unwrap()
+                    .ToBaseRef<IWatchdogClient>();
         }
     }
 }

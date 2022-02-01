@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using NYActor.Core;
+using NYActor.Core.Extensions;
 
 namespace NYActor.Tests
 {
