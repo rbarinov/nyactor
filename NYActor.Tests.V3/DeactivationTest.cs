@@ -3,115 +3,118 @@ using System.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
-namespace NYActor.Tests.V3
+namespace NYActor.Tests.V3;
+
+public class DeactivationTest
 {
-    public class DeactivationTest
+    private const string Key = nameof(Key);
+
+    private static int _activations;
+    private static int _deactivations;
+
+    [Test]
+    public async Task Deactivate()
     {
-        const string Key = nameof(Key);
+        using var node = new ActorNodeBuilder()
+            .WithActorDeactivationTimeout(TimeSpan.FromSeconds(1))
+            .Build();
 
-        private static int _activations;
-        private static int _deactivations;
+        var test = node.GetActor<DeactivationActor>(Key);
 
-        [Test]
-        public async Task Deactivate()
+        _activations = 0;
+        _deactivations = 0;
+
+        Assert.AreEqual(0, _activations);
+        Assert.AreEqual(0, _deactivations);
+
+        foreach (var interval in Enumerable.Range(1, 5))
         {
-            using var node = new ActorNodeBuilder()
-                .WithActorDeactivationTimeout(TimeSpan.FromSeconds(1))
-                .Build();
-
-            var test = node.GetActor<DeactivationActor>(Key);
-
-            _activations = 0;
-            _deactivations = 0;
-
-            Assert.AreEqual(0, _activations);
-            Assert.AreEqual(0, _deactivations);
-
-            foreach (var interval in Enumerable.Range(1, 5))
-            {
-                await Task.Delay(500);
-                await test.InvokeAsync(e => e.Nope());
-            }
-
-            Assert.AreEqual(1, _activations);
-            Assert.AreEqual(0, _deactivations);
-
-            await Task.Delay(2000);
-
-            Assert.AreEqual(1, _activations);
-            Assert.AreEqual(1, _deactivations);
-
+            await Task.Delay(500);
             await test.InvokeAsync(e => e.Nope());
-
-            Assert.AreEqual(2, _activations);
-            Assert.AreEqual(1, _deactivations);
         }
 
-        [Test]
-        public async Task LongDeactivation()
+        Assert.AreEqual(1, _activations);
+        Assert.AreEqual(0, _deactivations);
+
+        await Task.Delay(2000);
+
+        Assert.AreEqual(1, _activations);
+        Assert.AreEqual(1, _deactivations);
+
+        await test.InvokeAsync(e => e.Nope());
+
+        Assert.AreEqual(2, _activations);
+        Assert.AreEqual(1, _deactivations);
+    }
+
+    [Test]
+    public async Task LongDeactivation()
+    {
+        using var node = new ActorNodeBuilder()
+            .WithActorDeactivationTimeout(TimeSpan.FromSeconds(1))
+            .Build();
+
+        var test = node.GetActor<LongDeactivationActor>(Key);
+
+        _activations = 0;
+        _deactivations = 0;
+
+        Assert.AreEqual(0, _activations);
+        Assert.AreEqual(0, _deactivations);
+
+        await test.InvokeAsync(e => e.Nope());
+
+        Assert.AreEqual(1, _activations);
+        Assert.AreEqual(0, _deactivations);
+
+        await Task.Delay(2000);
+
+        Assert.AreEqual(1, _activations);
+        Assert.AreEqual(0, _deactivations);
+    }
+
+    public class DeactivationActor : Actor
+    {
+        protected override Task OnActivated()
         {
-            using var node = new ActorNodeBuilder()
-                .WithActorDeactivationTimeout(TimeSpan.FromSeconds(1))
-                .Build();
+            _activations++;
 
-            var test = node.GetActor<LongDeactivationActor>(Key);
-
-            _activations = 0;
-            _deactivations = 0;
-
-            Assert.AreEqual(0, _activations);
-            Assert.AreEqual(0, _deactivations);
-
-            await test.InvokeAsync(e => e.Nope());
-
-            Assert.AreEqual(1, _activations);
-            Assert.AreEqual(0, _deactivations);
-
-            await Task.Delay(2000);
-
-            Assert.AreEqual(1, _activations);
-            Assert.AreEqual(0, _deactivations);
+            return base.OnActivated();
         }
 
-        public class DeactivationActor : Actor
+        protected override Task OnDeactivated()
         {
-            protected override Task OnActivated()
-            {
-                _activations++;
+            _deactivations++;
 
-                return base.OnActivated();
-            }
-
-            protected override Task OnDeactivated()
-            {
-                _deactivations++;
-
-                return base.OnDeactivated();
-            }
-
-            public Task Nope() =>
-                Task.CompletedTask;
+            return base.OnDeactivated();
         }
 
-        public class LongDeactivationActor : Actor
+        public Task Nope()
         {
-            protected override async Task OnActivated()
-            {
-                _activations++;
-                await base.OnActivated();
+            return Task.CompletedTask;
+        }
+    }
 
-                DelayDeactivation(TimeSpan.FromHours(2));
-            }
+    public class LongDeactivationActor : Actor
+    {
+        protected override async Task OnActivated()
+        {
+            _activations++;
+            await base.OnActivated();
 
-            protected override Task OnDeactivated()
-            {
-                _deactivations++;
+            DelayDeactivation(TimeSpan.FromHours(2));
+        }
 
-                return base.OnDeactivated();
-            }
+        protected override Task OnDeactivated()
+        {
+            _deactivations++;
 
-            public Task Nope() =>
-                Task.CompletedTask;
+            return base.OnDeactivated();
+        }
+
+        public Task Nope()
+        {
+            return Task.CompletedTask;
         }
     }
 }

@@ -44,6 +44,6 @@ public abstract class Actor : IActor
 
     protected void DelayDeactivation(TimeSpan deactivationTimeout)
     {
-        this.SelfDispatcherInternal.DelayDeactivation(deactivationTimeout);
+        SelfDispatcherInternal.DelayDeactivation(deactivationTimeout);
     }
 }

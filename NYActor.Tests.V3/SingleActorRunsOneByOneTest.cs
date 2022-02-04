@@ -2,54 +2,53 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
-namespace NYActor.Tests.V3
+namespace NYActor.Tests.V3;
+
+public class SingleActorRunsOneByOneTest
 {
-    public class SingleActorRunsOneByOneTest
+    private const string Key = nameof(Key);
+
+    private const int FiveSecDelay = 5000;
+
+    [Test]
+    public async Task TestOneByOne()
     {
-        const string Key = nameof(Key);
+        using var node = new ActorNodeBuilder().Build();
 
-        private const int FiveSecDelay = 5000;
+        var actor = node.GetActor<SingleActor>(Key);
 
-        public class SingleActor : Actor
+        var task = Task.Run(() => actor.InvokeAsync(e => e.DelayLong()));
+
+        var sw = Stopwatch.StartNew();
+
+        var waitTaskToStart = 500;
+        await Task.Delay(waitTaskToStart);
+
+        var secondDelay = await actor.InvokeAsync(e => e.DelayFast());
+
+        sw.Stop();
+        var elapsed = sw.ElapsedMilliseconds;
+
+        Assert.True(elapsed > FiveSecDelay - waitTaskToStart);
+
+        var firstDelay = await task;
+    }
+
+    public class SingleActor : Actor
+    {
+        public async Task<int> DelayLong()
         {
-            public async Task<int> DelayLong()
-            {
-                await Task.Delay(FiveSecDelay);
+            await Task.Delay(FiveSecDelay);
 
-                return FiveSecDelay;
-            }
-
-            public async Task<int> DelayFast()
-            {
-                const int millisecondsDelay = 20;
-                await Task.Delay(millisecondsDelay);
-
-                return millisecondsDelay;
-            }
+            return FiveSecDelay;
         }
 
-        [Test]
-        public async Task TestOneByOne()
+        public async Task<int> DelayFast()
         {
-            using var node = new ActorNodeBuilder().Build();
+            const int millisecondsDelay = 20;
+            await Task.Delay(millisecondsDelay);
 
-            var actor = node.GetActor<SingleActor>(Key);
-
-            var task = Task.Run(() => actor.InvokeAsync(e => e.DelayLong()));
-
-            var sw = Stopwatch.StartNew();
-
-            var waitTaskToStart = 500;
-            await Task.Delay(waitTaskToStart);
-
-            var secondDelay = await actor.InvokeAsync(e => e.DelayFast());
-
-            sw.Stop();
-            var elapsed = sw.ElapsedMilliseconds;
-
-            Assert.True(elapsed > FiveSecDelay - waitTaskToStart);
-
-            var firstDelay = await task;
+            return millisecondsDelay;
         }
     }
 }

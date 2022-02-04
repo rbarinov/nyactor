@@ -1,82 +1,92 @@
-using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
-namespace NYActor.Tests.V3
+namespace NYActor.Tests.V3;
+
+public class AbstractOrNotPublicConstructorActorTests
 {
-    public class AbstractOrNotPublicConstructorActorTests
+    private const string Key = nameof(Key);
+
+    [Test]
+    public async Task Test()
     {
-        const string Key = nameof(Key);
-        
-        [Test]
-        public async Task Test()
-        {
-            var node = new ActorNodeBuilder()
-                .Build();
+        var node = new ActorNodeBuilder()
+            .Build();
 
-            var properActor = node.GetActor<ProperActor>(Key);
-            var innerProperActor = node.GetActor<ProperActor.InnerProperActor>(Key);
+        var properActor = node.GetActor<ProperActor>(Key);
+        var innerProperActor = node.GetActor<ProperActor.InnerProperActor>(Key);
 
-            await properActor.InvokeAsync(e => e.Nope());
-            await innerProperActor.InvokeAsync(e => e.Nope());
-        }
+        await properActor.InvokeAsync(e => e.Nope());
+        await innerProperActor.InvokeAsync(e => e.Nope());
+    }
+}
+
+public class ProperActor : Actor
+{
+    public Task Nope()
+    {
+        return Task.CompletedTask;
     }
 
-    public class ProperActor : Actor
+    public class InnerProperActor : Actor
     {
-        public Task Nope() =>
-            Task.CompletedTask;
-
-        public class InnerProperActor : Actor
+        public Task Nope()
         {
-            public Task Nope() =>
-                Task.CompletedTask;
+            return Task.CompletedTask;
         }
     }
+}
 
-    public abstract class ExternalAbstractActor : Actor
+public abstract class ExternalAbstractActor : Actor
+{
+    public Task Nope()
     {
-        public abstract class InternalAbstractActor : Actor
-        {
-            public Task Nope() =>
-                Task.CompletedTask;
-        }
-
-        public Task Nope() =>
-            Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public class ExternalNoPublicConstructorActor : Actor
+    public abstract class InternalAbstractActor : Actor
     {
-        protected ExternalNoPublicConstructorActor()
+        public Task Nope()
         {
-        }
-
-        public Task Nope() =>
-            Task.CompletedTask;
-
-        public class InternalNoPublicConstructorActor : Actor
-        {
-            public Task Nope() =>
-                Task.CompletedTask;
-
-            protected InternalNoPublicConstructorActor()
-            {
-            }
+            return Task.CompletedTask;
         }
     }
+}
 
-    public class ExternalNoPublicConstructorActor2 : Actor
+public class ExternalNoPublicConstructorActor : Actor
+{
+    protected ExternalNoPublicConstructorActor()
     {
-        private ExternalNoPublicConstructorActor2()
+    }
+
+    public Task Nope()
+    {
+        return Task.CompletedTask;
+    }
+
+    public class InternalNoPublicConstructorActor : Actor
+    {
+        protected InternalNoPublicConstructorActor()
         {
         }
 
-        public class InternalNoPublicConstructorActor2 : Actor
+        public Task Nope()
         {
-            private InternalNoPublicConstructorActor2()
-            {
-            }
+            return Task.CompletedTask;
+        }
+    }
+}
+
+public class ExternalNoPublicConstructorActor2 : Actor
+{
+    private ExternalNoPublicConstructorActor2()
+    {
+    }
+
+    public class InternalNoPublicConstructorActor2 : Actor
+    {
+        private InternalNoPublicConstructorActor2()
+        {
         }
     }
 }

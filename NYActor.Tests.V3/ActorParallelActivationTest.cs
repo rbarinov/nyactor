@@ -3,60 +3,63 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
-namespace NYActor.Tests.V3
+namespace NYActor.Tests.V3;
+
+public class ActorParallelActivationTest
 {
-    public class ActorParallelActivationTest
+    private const string Key = nameof(Key);
+
+    public static readonly TimeSpan SlowActivationDelay = TimeSpan.FromSeconds(2);
+
+    [Test]
+    public async Task MessagePipe()
     {
-        const string Key = nameof(Key);
+        using var node = new ActorNodeBuilder().Build();
 
-        public static readonly TimeSpan SlowActivationDelay = TimeSpan.FromSeconds(2);
+        var slow = node.GetActor<SlowActivationActor>(Key);
+        var fast = node.GetActor<FastActivationActor>(Key);
 
-        [Test]
-        public async Task MessagePipe()
-        {
-            using var node = new ActorNodeBuilder().Build();
-
-            var slow = node.GetActor<SlowActivationActor>(Key);
-            var fast = node.GetActor<FastActivationActor>(Key);
-
-            var task = Task.Run(
-                async () =>
-                {
-                    var res = await slow.InvokeAsync(e => e.GetKey());
-
-                    return res;
-                }
-            );
-
-            await Task.Delay(1000);
-
-            var sw = Stopwatch.StartNew();
-            var fastRes = await fast.InvokeAsync(e => e.GetKey());
-            sw.Stop();
-
-            var elapsed = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
-
-            Assert.True(elapsed < SlowActivationDelay.Subtract(TimeSpan.FromSeconds(1)) / 2);
-
-            var slowRes = await task;
-        }
-
-        public class SlowActivationActor : Actor
-        {
-            protected override async Task OnActivated()
+        var task = Task.Run(
+            async () =>
             {
-                await base.OnActivated();
-                await Task.Delay(ActorParallelActivationTest.SlowActivationDelay);
-            }
+                var res = await slow.InvokeAsync(e => e.GetKey());
 
-            public Task<string> GetKey() =>
-                Task.FromResult(Key);
+                return res;
+            }
+        );
+
+        await Task.Delay(1000);
+
+        var sw = Stopwatch.StartNew();
+        var fastRes = await fast.InvokeAsync(e => e.GetKey());
+        sw.Stop();
+
+        var elapsed = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
+
+        Assert.True(elapsed < SlowActivationDelay.Subtract(TimeSpan.FromSeconds(1)) / 2);
+
+        var slowRes = await task;
+    }
+
+    public class SlowActivationActor : Actor
+    {
+        protected override async Task OnActivated()
+        {
+            await base.OnActivated();
+            await Task.Delay(SlowActivationDelay);
         }
 
-        public class FastActivationActor : Actor
+        public Task<string> GetKey()
         {
-            public Task<string> GetKey() =>
-                Task.FromResult(Key);
+            return Task.FromResult(Key);
+        }
+    }
+
+    public class FastActivationActor : Actor
+    {
+        public Task<string> GetKey()
+        {
+            return Task.FromResult(Key);
         }
     }
 }

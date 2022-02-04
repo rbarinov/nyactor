@@ -13,15 +13,10 @@ public static class ActorExtensions
     public static IActorSystem System<TActor>(this TActor actor, ActorExecutionContext actorExecutionContext = null)
         where TActor : Actor
     {
-        if (actorExecutionContext == NYActor.ActorExecutionContext.Empty)
-        {
-            return actor.SelfDispatcherInternal.ActorNode;
-        }
+        if (actorExecutionContext == NYActor.ActorExecutionContext.Empty) return actor.SelfDispatcherInternal.ActorNode;
 
         if (actor.ActorExecutionContext() is ScopedExecutionContext scopedExecutionContext)
-        {
             return new ScopedActorSystem(actor.SelfDispatcherInternal.ActorNode, scopedExecutionContext);
-        }
 
         return actor.SelfDispatcherInternal.ActorNode;
     }

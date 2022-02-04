@@ -21,14 +21,13 @@ public class Client : IClient
 
 public class MyActor : Actor
 {
+    public static int activationId;
     private readonly IClient _client;
 
     public MyActor(IClient client)
     {
         _client = client;
     }
-
-    public static int activationId = 0;
 
     protected override Task OnActivated()
     {
@@ -75,7 +74,7 @@ public class RequestPropagationTest
     public async Task TestDirect()
     {
         MyActor.activationId = 0;
-        
+
         var client = new Client();
 
         var node = new ActorNodeBuilder()
@@ -139,7 +138,7 @@ public class RequestPropagationTest
     public async Task TestFacade()
     {
         MyActor.activationId = 0;
-        
+
         var client = new Client();
 
         var node = new ActorNodeBuilder()

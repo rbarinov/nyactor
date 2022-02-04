@@ -46,24 +46,18 @@ public class ActorNode : IActorSystem, IDisposable
         return new LocalActorReference<TActor>(actorWrapper);
     }
 
+    public void Dispose()
+    {
+        foreach (var wrapperBase in _actorDispatchers) (wrapperBase.Value.Value as IDisposable)?.Dispose();
+    }
+
     internal (ActorExecutionContext actorExecutionContext, ITracingActivity tracingActivity) CreateTracingActivity(
         ActorExecutionContext actorExecutionContext,
         string activityName
     )
     {
-        if (_tracingActivityFactory == null)
-        {
-            return (actorExecutionContext, default);
-        }
+        if (_tracingActivityFactory == null) return (actorExecutionContext, default);
 
         return _tracingActivityFactory(actorExecutionContext, activityName);
-    }
-
-    public void Dispose()
-    {
-        foreach (var wrapperBase in _actorDispatchers)
-        {
-            (wrapperBase.Value.Value as IDisposable)?.Dispose();
-        }
     }
 }

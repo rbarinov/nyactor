@@ -6,6 +6,26 @@ namespace NYActor.Tests.V3;
 
 public class Tests
 {
+    [Test]
+    public async Task Actor_inside_api_is_ok()
+    {
+        var node = new ActorNodeBuilder()
+            .ConfigureServices(
+                e => { e.AddSingleton<string>("injected-string"); }
+            )
+            .Build();
+
+        var actorRef = node.GetActor<MyActor>("test");
+
+        var res = await actorRef.InvokeAsync(e => e.JobA());
+
+        Assert.AreEqual(13, res);
+
+        var testInjection = await actorRef.InvokeAsync(e => e.GetString());
+
+        Assert.AreEqual("injected-string", testInjection);
+    }
+
     public class MyActor : Actor
     {
         private readonly string _testInjection;
@@ -37,25 +57,5 @@ public class Tests
         {
             return Task.CompletedTask;
         }
-    }
-
-    [Test]
-    public async Task Actor_inside_api_is_ok()
-    {
-        var node = new ActorNodeBuilder()
-            .ConfigureServices(
-                e => { e.AddSingleton<string>("injected-string"); }
-            )
-            .Build();
-
-        var actorRef = node.GetActor<MyActor>("test");
-
-        var res = await actorRef.InvokeAsync(e => e.JobA());
-
-        Assert.AreEqual(13, res);
-
-        var testInjection = await actorRef.InvokeAsync(e => e.GetString());
-
-        Assert.AreEqual("injected-string", testInjection);
     }
 }

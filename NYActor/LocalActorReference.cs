@@ -61,6 +61,7 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
     public IActorReference<TBaseActor> ToBaseRef<TBaseActor>() where TBaseActor : IActor
     {
         var baseActorDispatcher = _actorDispatcherInternal as IActorDispatcherInternal<TBaseActor>;
+
         return new LocalActorReference<TBaseActor>(baseActorDispatcher);
     }
 }
