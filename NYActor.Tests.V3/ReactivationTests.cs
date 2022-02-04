@@ -9,7 +9,7 @@ namespace NYActor.Tests.V3
         [Test]
         public async Task Test()
         {
-            using var node = new ActorNodeBuilder().Build();
+            using var node = new ActorSystemBuilder().BuildLocalActorNode();
 
             var actor = node.GetActor<ErrorActor>("a");
 
@@ -19,7 +19,7 @@ namespace NYActor.Tests.V3
             {
                 await actor.InvokeAsync(e => e.Error());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // ignore
             }

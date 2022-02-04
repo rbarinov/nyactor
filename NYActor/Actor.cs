@@ -4,15 +4,15 @@ public abstract class Actor : IActor
 {
     public string Key { get; private set; }
 
-    internal IActorDispatcherInternal SelfDispatcherInternal { get; private set; }
+    internal ILocalActorDispatcher SelfDispatcher { get; private set; }
 
     internal void InitializeInstanceFields(
         string key,
-        IActorDispatcherInternal selfDispatcherInternal
+        ILocalActorDispatcher selfDispatcher
     )
     {
         Key = key;
-        SelfDispatcherInternal = selfDispatcherInternal;
+        SelfDispatcher = selfDispatcher;
     }
 
     internal async Task Activate()
@@ -44,6 +44,6 @@ public abstract class Actor : IActor
 
     protected void DelayDeactivation(TimeSpan deactivationTimeout)
     {
-        SelfDispatcherInternal.DelayDeactivation(deactivationTimeout);
+        SelfDispatcher.DelayDeactivation(deactivationTimeout);
     }
 }

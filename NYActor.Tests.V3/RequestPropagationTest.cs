@@ -77,11 +77,11 @@ public class RequestPropagationTest
 
         var client = new Client();
 
-        var node = new ActorNodeBuilder()
+        var node = new ActorSystemBuilder()
             .ConfigureServices(
                 e => { e.AddSingleton<IClient>(new Client()); }
             )
-            .Build();
+            .BuildLocalActorNode();
 
         string key = nameof(key);
 
@@ -141,11 +141,11 @@ public class RequestPropagationTest
 
         var client = new Client();
 
-        var node = new ActorNodeBuilder()
+        var node = new ActorSystemBuilder()
             .ConfigureServices(
                 e => { e.AddSingleton<IClient>(new Client()); }
             )
-            .Build();
+            .BuildLocalActorNode();
 
         string key = nameof(key);
 

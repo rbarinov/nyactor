@@ -21,7 +21,7 @@ namespace NYActor.Tests
             {
                 await actor.InvokeAsync(e => e.Error());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // ignore
             }

@@ -7,7 +7,8 @@ using NYActor.Message;
 
 namespace NYActor;
 
-public class ActorDispatcher<TActor> : IActorDispatcherInternal<TActor>, IDisposable where TActor : Actor
+public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>, IDisposable
+    where TActor : Actor
 {
     private readonly string _fullName;
     private readonly Subject<object> _ingress = new();
@@ -20,11 +21,11 @@ public class ActorDispatcher<TActor> : IActorDispatcherInternal<TActor>, IDispos
     private Subject<Unit> _deactivationWatchdogSubject;
     private IDisposable _deactivationWatchdogSubscription;
 
-    public ActorDispatcher(string key, ActorNode actorNode, IServiceProvider serviceProvider)
+    public LocalActorDispatcher(string key, LocalActorNode localActorNode, IServiceProvider serviceProvider)
     {
         _key = key;
         _serviceProvider = serviceProvider;
-        ActorNode = actorNode;
+        LocalActorNode = localActorNode;
         _fullName = $"{typeof(TActor).FullName}-{_key}";
 
         _ingress
@@ -35,9 +36,9 @@ public class ActorDispatcher<TActor> : IActorDispatcherInternal<TActor>, IDispos
             .Subscribe();
     }
 
-    internal ActorExecutionContext CurrentExecutionContext { get; private set; }
+    public ActorExecutionContext CurrentExecutionContext { get; private set; }
 
-    public ActorNode ActorNode { get; }
+    public LocalActorNode LocalActorNode { get; }
 
     public void DelayDeactivation(TimeSpan deactivationTimeout)
     {
@@ -124,7 +125,7 @@ public class ActorDispatcher<TActor> : IActorDispatcherInternal<TActor>, IDispos
 
         if (message is not IngressMessage ingressMessage) return;
 
-        var (actorExecutionContext, tracingActivity) = ActorNode.CreateTracingActivity(
+        var (actorExecutionContext, tracingActivity) = LocalActorNode.CreateTracingActivity(
             ingressMessage.ActorExecutionContext,
             $"{_fullName}: {(ingressMessage as IngressAskMessage)?.CallName ?? nameof(IngressOnewayMessage)}"
         );
@@ -220,7 +221,7 @@ public class ActorDispatcher<TActor> : IActorDispatcherInternal<TActor>, IDispos
         _deactivationWatchdogSubject = new Subject<Unit>();
 
         _deactivationWatchdogSubscription = _deactivationWatchdogSubject
-            .Timeout(deactivationTimeout ?? ActorNode.ActorDeactivationTimeout)
+            .Timeout(deactivationTimeout ?? LocalActorNode.ActorDeactivationTimeout)
             .IgnoreElements()
             .Subscribe(_ => { }, timeout => _ingress.OnNext(PoisonPill.Default));
     }

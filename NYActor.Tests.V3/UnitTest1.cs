@@ -9,11 +9,11 @@ public class Tests
     [Test]
     public async Task Actor_inside_api_is_ok()
     {
-        var node = new ActorNodeBuilder()
+        using var node = new ActorSystemBuilder()
             .ConfigureServices(
                 e => { e.AddSingleton<string>("injected-string"); }
             )
-            .Build();
+            .BuildLocalActorNode();
 
         var actorRef = node.GetActor<MyActor>("test");
 

@@ -2,15 +2,15 @@ using System.Collections.Concurrent;
 
 namespace NYActor;
 
-public class ActorNode : IActorSystem, IDisposable
+public class LocalActorNode : IActorSystem, IDisposable
 {
-    private readonly ConcurrentDictionary<string, Lazy<IActorDispatcherInternal>> _actorDispatchers = new();
+    private readonly ConcurrentDictionary<string, Lazy<ILocalActorDispatcher>> _actorDispatchers = new();
     private readonly IServiceProvider _serviceProvider;
 
     private readonly Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
         tracingActivity)> _tracingActivityFactory;
 
-    public ActorNode(
+    public LocalActorNode(
         IServiceProvider serviceProvider,
         TimeSpan actorDeactivationTimeout,
         Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
@@ -28,20 +28,20 @@ public class ActorNode : IActorSystem, IDisposable
     {
         var actorPath = $"{typeof(TActor).FullName}-{key}";
 
-        Lazy<IActorDispatcherInternal> lazyWrapper;
+        Lazy<ILocalActorDispatcher> lazyWrapper;
 
         lock (_actorDispatchers)
         {
             lazyWrapper = _actorDispatchers.GetOrAdd(
                 actorPath,
-                e => new Lazy<IActorDispatcherInternal>(
+                e => new Lazy<ILocalActorDispatcher>(
                     () =>
-                        new ActorDispatcher<TActor>(key, this, _serviceProvider)
+                        new LocalActorDispatcher<TActor>(key, this, _serviceProvider)
                 )
             );
         }
 
-        var actorWrapper = lazyWrapper.Value as IActorDispatcherInternal<TActor>;
+        var actorWrapper = lazyWrapper.Value as ILocalActorDispatcher<TActor>;
 
         return new LocalActorReference<TActor>(actorWrapper);
     }

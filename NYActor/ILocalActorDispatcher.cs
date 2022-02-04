@@ -1,7 +1,9 @@
 namespace NYActor;
 
-public interface IActorDispatcherInternal<out TActor> : IActorDispatcherInternal where TActor : IActor
+public interface ILocalActorDispatcher<out TActor> : ILocalActorDispatcher where TActor : IActor
 {
+    ActorExecutionContext CurrentExecutionContext { get; }
+
     Task SendAsync<TMessage>(
         TMessage message,
         ActorExecutionContext actorExecutionContext = null
@@ -20,8 +22,8 @@ public interface IActorDispatcherInternal<out TActor> : IActorDispatcherInternal
     );
 }
 
-public interface IActorDispatcherInternal
+public interface ILocalActorDispatcher
 {
-    ActorNode ActorNode { get; }
+    LocalActorNode LocalActorNode { get; }
     void DelayDeactivation(TimeSpan deactivationTimeout);
 }

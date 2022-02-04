@@ -10,8 +10,8 @@ public class AbstractOrNotPublicConstructorActorTests
     [Test]
     public async Task Test()
     {
-        var node = new ActorNodeBuilder()
-            .Build();
+        var node = new ActorSystemBuilder()
+            .BuildLocalActorNode();
 
         var properActor = node.GetActor<ProperActor>(Key);
         var innerProperActor = node.GetActor<ProperActor.InnerProperActor>(Key);

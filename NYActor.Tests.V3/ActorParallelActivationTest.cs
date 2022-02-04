@@ -14,7 +14,7 @@ public class ActorParallelActivationTest
     [Test]
     public async Task MessagePipe()
     {
-        using var node = new ActorNodeBuilder().Build();
+        using var node = new ActorSystemBuilder().BuildLocalActorNode();
 
         var slow = node.GetActor<SlowActivationActor>(Key);
         var fast = node.GetActor<FastActivationActor>(Key);

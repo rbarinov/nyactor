@@ -14,7 +14,7 @@ namespace NYActor.Tests.V3
         [Test]
         public async Task Test()
         {
-            var node = new ActorNodeBuilder().Build();
+            var node = new ActorSystemBuilder().BuildLocalActorNode();
 
             var a = node.GetActor<WatchdogClientActorA>("KEY");
 
@@ -36,7 +36,9 @@ namespace NYActor.Tests.V3
 
             await Task.Delay(1000);
 
-            a.InvokeAsync(e => e.Wait());
+            a.InvokeAsync(e => e.Wait())
+                .Ignore();
+
             await Task.Delay(10000);
         }
 

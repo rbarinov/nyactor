@@ -38,7 +38,7 @@ namespace NYActor.Tests
 
             await Task.Delay(1000);
 
-            a.InvokeAsync(e => e.Wait());
+            var ignored = a.InvokeAsync(e => e.Wait());
             await Task.Delay(10000);
         }
 

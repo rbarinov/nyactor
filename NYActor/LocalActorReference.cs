@@ -7,11 +7,11 @@ namespace NYActor;
 public class LocalActorReference<TActor> : IActorReference<TActor>
     where TActor : IActor
 {
-    private readonly IActorDispatcherInternal<TActor> _actorDispatcherInternal;
+    private readonly ILocalActorDispatcher<TActor> _localActorDispatcher;
 
-    public LocalActorReference(IActorDispatcherInternal<TActor> actorDispatcherInternal)
+    public LocalActorReference(ILocalActorDispatcher<TActor> localActorDispatcher)
     {
-        _actorDispatcherInternal = actorDispatcherInternal;
+        _localActorDispatcher = localActorDispatcher;
     }
 
     public Task SendAsync<TMessage>(
@@ -19,7 +19,7 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
         ActorExecutionContext actorExecutionContext = null
     )
     {
-        return _actorDispatcherInternal.SendAsync(
+        return _localActorDispatcher.SendAsync(
             message,
             actorExecutionContext
         );
@@ -36,7 +36,7 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
 
         var func = req.Compile();
 
-        return _actorDispatcherInternal.InvokeAsync(
+        return _localActorDispatcher.InvokeAsync(
             func,
             callName,
             actorExecutionContext
@@ -51,7 +51,7 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
 
         var func = req.Compile();
 
-        return _actorDispatcherInternal.InvokeAsync(
+        return _localActorDispatcher.InvokeAsync(
             func,
             callName,
             actorExecutionContext
@@ -60,7 +60,7 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
 
     public IActorReference<TBaseActor> ToBaseRef<TBaseActor>() where TBaseActor : IActor
     {
-        var baseActorDispatcher = _actorDispatcherInternal as IActorDispatcherInternal<TBaseActor>;
+        var baseActorDispatcher = _localActorDispatcher as ILocalActorDispatcher<TBaseActor>;
 
         return new LocalActorReference<TBaseActor>(baseActorDispatcher);
     }

@@ -13,7 +13,7 @@ public class SingleActorRunsOneByOneTest
     [Test]
     public async Task TestOneByOne()
     {
-        using var node = new ActorNodeBuilder().Build();
+        using var node = new ActorSystemBuilder().BuildLocalActorNode();
 
         var actor = node.GetActor<SingleActor>(Key);
 

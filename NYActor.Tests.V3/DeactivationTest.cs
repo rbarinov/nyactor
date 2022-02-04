@@ -15,9 +15,9 @@ public class DeactivationTest
     [Test]
     public async Task Deactivate()
     {
-        using var node = new ActorNodeBuilder()
+        using var node = new ActorSystemBuilder()
             .WithActorDeactivationTimeout(TimeSpan.FromSeconds(1))
-            .Build();
+            .BuildLocalActorNode();
 
         var test = node.GetActor<DeactivationActor>(Key);
 
@@ -50,9 +50,9 @@ public class DeactivationTest
     [Test]
     public async Task LongDeactivation()
     {
-        using var node = new ActorNodeBuilder()
+        using var node = new ActorSystemBuilder()
             .WithActorDeactivationTimeout(TimeSpan.FromSeconds(1))
-            .Build();
+            .BuildLocalActorNode();
 
         var test = node.GetActor<LongDeactivationActor>(Key);
 

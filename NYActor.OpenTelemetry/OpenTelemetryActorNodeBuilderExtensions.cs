@@ -8,8 +8,8 @@ namespace NYActor.OpenTelemetry;
 
 public static class OpenTelemetryActorNodeBuilderExtensions
 {
-    public static ActorNodeBuilder AddOpenTelemetryTracing(
-        this ActorNodeBuilder actorNodeBuilder,
+    public static ActorSystemBuilder AddOpenTelemetryTracing(
+        this ActorSystemBuilder actorSystemBuilder,
         string host,
         int port
     )
@@ -36,7 +36,7 @@ public static class OpenTelemetryActorNodeBuilderExtensions
 
         var activitySource = new ActivitySource(assembly);
 
-        return actorNodeBuilder.AddGenericTracing(
+        return actorSystemBuilder.AddGenericTracing(
             (actorExecutionContext, activityName) =>
             {
                 Activity.Current = null;

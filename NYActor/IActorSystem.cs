@@ -1,6 +1,6 @@
 ﻿namespace NYActor;
 
-public interface IActorSystem
+public interface IActorSystem : IDisposable
 {
     IActorReference<TActor> GetActor<TActor>(string key) where TActor : Actor;
 }

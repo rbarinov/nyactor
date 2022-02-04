@@ -20,4 +20,9 @@ public class ScopedActorSystem : IActorSystem
 
         return new ScopedActorReference<TActor>(actorReference, _scopedExecutionContext);
     }
+
+    public void Dispose()
+    {
+        // ignore
+    }
 }

@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace NYActor;
 
-public class ActorNodeBuilder
+public sealed class ActorSystemBuilder
 {
     public static readonly TimeSpan DefaultActorDeactivationTimeout = TimeSpan.FromMinutes(20);
     private TimeSpan _actorDeactivationTimeout = DefaultActorDeactivationTimeout;
@@ -12,7 +12,7 @@ public class ActorNodeBuilder
     private Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
         tracingActivity)> _tracingActivityFactory;
 
-    public ActorNodeBuilder ConfigureServices(Action<IServiceCollection> configureServices)
+    public ActorSystemBuilder ConfigureServices(Action<IServiceCollection> configureServices)
     {
         var serviceCollection = new ServiceCollection();
 
@@ -23,14 +23,14 @@ public class ActorNodeBuilder
         return this;
     }
 
-    public ActorNodeBuilder WithActorDeactivationTimeout(TimeSpan actorDeactivationTimeout)
+    public ActorSystemBuilder WithActorDeactivationTimeout(TimeSpan actorDeactivationTimeout)
     {
         _actorDeactivationTimeout = actorDeactivationTimeout;
 
         return this;
     }
 
-    public ActorNodeBuilder AddGenericTracing(
+    public ActorSystemBuilder AddGenericTracing(
         Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
             tracingActivity)> tracingActivityFactory
     )
@@ -40,10 +40,21 @@ public class ActorNodeBuilder
         return this;
     }
 
-    public ActorNode Build()
+    public IActorSystem BuildLocalActorNode()
     {
-        var actorNode = new ActorNode(_serviceProvider, _actorDeactivationTimeout, _tracingActivityFactory);
+        var actorNode = new LocalActorNode(_serviceProvider, _actorDeactivationTimeout, _tracingActivityFactory);
 
         return actorNode;
+    }
+
+    public IActorSystem BuildCluster()
+    {
+        var clusterActorNode = new ClusterActorNode(
+            _serviceProvider,
+            _actorDeactivationTimeout,
+            _tracingActivityFactory
+        );
+
+        return clusterActorNode;
     }
 }

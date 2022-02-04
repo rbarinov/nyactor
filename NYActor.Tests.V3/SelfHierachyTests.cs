@@ -9,8 +9,8 @@ public class SelfHierachyTests
     [Test]
     public async Task TestHierarchyActorSelfCall()
     {
-        var system = new ActorNodeBuilder()
-            .Build();
+        var system = new ActorSystemBuilder()
+            .BuildLocalActorNode();
 
         var key = nameof(TestHierarchyActorSelfCall);
 

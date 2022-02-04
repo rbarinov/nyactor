@@ -21,7 +21,7 @@ public class LoadSingleTest
     [Test]
     public async Task TestLoad()
     {
-        var node = new ActorNodeBuilder().Build();
+        var node = new ActorSystemBuilder().BuildLocalActorNode();
 
         var reqs = Enumerable.Range(1, 2000)
             .Select(e => QueryLoad(node, e))
