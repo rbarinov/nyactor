@@ -16,7 +16,7 @@ public class ActorExecutesInThreadPoolTest
     public async Task ThreadsTest()
     {
         using var node = new ActorSystemBuilder()
-            .BuildLocalActorNode();
+            .Build();
 
         var tasks = Enumerable.Range(1, 100)
             .Select(

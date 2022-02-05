@@ -10,15 +10,19 @@ public class LocalActorNode : IActorSystem, IDisposable
     private readonly Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
         tracingActivity)> _tracingActivityFactory;
 
+    private readonly Func<IActorSystem> _actorSystemGetter;
+
     public LocalActorNode(
         IServiceProvider serviceProvider,
         TimeSpan actorDeactivationTimeout,
         Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
-            tracingActivity)> tracingActivityFactory
+            tracingActivity)> tracingActivityFactory,
+        Func<IActorSystem> actorSystemGetter = null
     )
     {
         _serviceProvider = serviceProvider;
         _tracingActivityFactory = tracingActivityFactory;
+        _actorSystemGetter = actorSystemGetter;
         ActorDeactivationTimeout = actorDeactivationTimeout;
     }
 
@@ -36,7 +40,13 @@ public class LocalActorNode : IActorSystem, IDisposable
                 actorPath,
                 e => new Lazy<ILocalActorDispatcher>(
                     () =>
-                        new LocalActorDispatcher<TActor>(key, this, _serviceProvider)
+                        new LocalActorDispatcher<TActor>(
+                            key,
+                            _actorSystemGetter?.Invoke() ?? this,
+                            _serviceProvider,
+                            _tracingActivityFactory,
+                            ActorDeactivationTimeout
+                        )
                 )
             );
         }

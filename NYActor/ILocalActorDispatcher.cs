@@ -24,6 +24,6 @@ public interface ILocalActorDispatcher<out TActor> : ILocalActorDispatcher where
 
 public interface ILocalActorDispatcher
 {
-    LocalActorNode LocalActorNode { get; }
+    IActorSystem ActorSystem { get; }
     void DelayDeactivation(TimeSpan deactivationTimeout);
 }

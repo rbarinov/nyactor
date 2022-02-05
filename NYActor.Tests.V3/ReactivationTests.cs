@@ -9,7 +9,7 @@ namespace NYActor.Tests.V3
         [Test]
         public async Task Test()
         {
-            using var node = new ActorSystemBuilder().BuildLocalActorNode();
+            using var node = new ActorSystemBuilder().Build();
 
             var actor = node.GetActor<ErrorActor>("a");
 

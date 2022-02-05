@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.Tests.V3", "NYActor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.OpenTelemetry", "NYActor.OpenTelemetry\NYActor.OpenTelemetry.csproj", "{95915618-94AE-4586-8A63-0BA5A79DD9D8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.Cluster", "NYActor.Cluster\NYActor.Cluster.csproj", "{D2A5E099-3476-419C-B495-7760B612E531}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{95915618-94AE-4586-8A63-0BA5A79DD9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95915618-94AE-4586-8A63-0BA5A79DD9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{95915618-94AE-4586-8A63-0BA5A79DD9D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2A5E099-3476-419C-B495-7760B612E531}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2A5E099-3476-419C-B495-7760B612E531}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2A5E099-3476-419C-B495-7760B612E531}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2A5E099-3476-419C-B495-7760B612E531}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

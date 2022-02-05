@@ -25,18 +25,18 @@ public static class ActorExtensions
         where TActor : Actor
     {
         if (actorExecutionContext == NYActor.ActorExecutionContext.Empty)
-            return actor.SelfDispatcher.LocalActorNode;
+            return actor.SelfDispatcher.ActorSystem;
 
         if (actor.ActorExecutionContext() is ScopedExecutionContext scopedExecutionContext)
-            return new ScopedActorSystem(actor.SelfDispatcher.LocalActorNode, scopedExecutionContext);
+            return new ScopedActorSystem(actor.SelfDispatcher.ActorSystem, scopedExecutionContext);
 
-        return actor.SelfDispatcher.LocalActorNode;
+        return actor.SelfDispatcher.ActorSystem;
     }
 
     public static ActorExecutionContext ActorExecutionContext<TActor>(this TActor actor)
         where TActor : Actor
     {
-        return (actor.SelfDispatcher as LocalActorDispatcher<TActor>)?.CurrentExecutionContext;
+        return (actor.SelfDispatcher as ILocalActorDispatcher<TActor>)?.CurrentExecutionContext;
     }
 
     public static TContext To<TContext>(this ActorExecutionContext executionContext)

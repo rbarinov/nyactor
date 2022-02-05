@@ -15,18 +15,47 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
     private readonly string _key;
     private readonly IServiceProvider _serviceProvider;
 
+    private readonly
+        Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
+            tracingActivity)> _tracingActivityFactory;
+
+    private readonly TimeSpan _actorDeactivationTimeout;
+
     private readonly Subject<Unit> _unsubscribeAll = new();
     private TActor _actor;
 
     private Subject<Unit> _deactivationWatchdogSubject;
     private IDisposable _deactivationWatchdogSubscription;
 
-    public LocalActorDispatcher(string key, LocalActorNode localActorNode, IServiceProvider serviceProvider)
+    public LocalActorDispatcher(
+        string key,
+        IActorSystem actorSystem,
+        IServiceProvider serviceProvider,
+        Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
+            tracingActivity)> tracingActivityFactory,
+        TimeSpan actorDeactivationTimeout
+    )
     {
         _key = key;
         _serviceProvider = serviceProvider;
-        LocalActorNode = localActorNode;
-        _fullName = $"{typeof(TActor).FullName}-{_key}";
+        _tracingActivityFactory = tracingActivityFactory;
+        _actorDeactivationTimeout = actorDeactivationTimeout;
+        ActorSystem = actorSystem;
+
+        var actorType = typeof(TActor);
+
+        if (actorType.IsGenericType)
+        {
+            var genericFullName = actorType.GetGenericTypeDefinition()
+                .FullName;
+
+            _fullName =
+                $"{genericFullName.Substring(0, genericFullName.Length - 2)}<{string.Join(",", actorType.GetGenericArguments().Select(e => e.FullName))}>-{_key}";
+        }
+        else
+        {
+            _fullName = $"{actorType.FullName}-{_key}";
+        }
 
         _ingress
             .ObserveOn(ThreadPoolScheduler.Instance)
@@ -38,7 +67,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
     public ActorExecutionContext CurrentExecutionContext { get; private set; }
 
-    public LocalActorNode LocalActorNode { get; }
+    public IActorSystem ActorSystem { get; }
 
     public void DelayDeactivation(TimeSpan deactivationTimeout)
     {
@@ -125,10 +154,10 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
         if (message is not IngressMessage ingressMessage) return;
 
-        var (actorExecutionContext, tracingActivity) = LocalActorNode.CreateTracingActivity(
+        var (actorExecutionContext, tracingActivity) = _tracingActivityFactory?.Invoke(
             ingressMessage.ActorExecutionContext,
             $"{_fullName}: {(ingressMessage as IngressAskMessage)?.CallName ?? nameof(IngressOnewayMessage)}"
-        );
+        ) ?? (ingressMessage.ActorExecutionContext, default);
 
         CurrentExecutionContext = actorExecutionContext;
 
@@ -221,7 +250,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
         _deactivationWatchdogSubject = new Subject<Unit>();
 
         _deactivationWatchdogSubscription = _deactivationWatchdogSubject
-            .Timeout(deactivationTimeout ?? LocalActorNode.ActorDeactivationTimeout)
+            .Timeout(deactivationTimeout ?? _actorDeactivationTimeout)
             .IgnoreElements()
             .Subscribe(_ => { }, timeout => _ingress.OnNext(PoisonPill.Default));
     }

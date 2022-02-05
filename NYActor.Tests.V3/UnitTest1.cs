@@ -13,7 +13,7 @@ public class Tests
             .ConfigureServices(
                 e => { e.AddSingleton<string>("injected-string"); }
             )
-            .BuildLocalActorNode();
+            .Build();
 
         var actorRef = node.GetActor<MyActor>("test");
 

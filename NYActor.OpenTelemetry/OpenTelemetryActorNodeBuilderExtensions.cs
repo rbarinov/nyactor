@@ -43,7 +43,7 @@ public static class OpenTelemetryActorNodeBuilderExtensions
                 var newActorExecutionContext = actorExecutionContext;
                 var context = actorExecutionContext?.To<ScopedExecutionContext>();
 
-                var activityContext = context != null
+                var activityContext = context != null && context.Scope.ContainsKey("x-b3-traceid") && context.Scope.ContainsKey("x-b3-spanid")
                     ? (ActivityContext?) new ActivityContext(
                         ActivityTraceId.CreateFromString(context.Scope["x-b3-traceid"]),
                         ActivitySpanId.CreateFromString(context.Scope["x-b3-spanid"]),

@@ -2,15 +2,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace NYActor;
 
-public sealed class ActorSystemBuilder
+public class ActorSystemBuilder
 {
     public static readonly TimeSpan DefaultActorDeactivationTimeout = TimeSpan.FromMinutes(20);
-    private TimeSpan _actorDeactivationTimeout = DefaultActorDeactivationTimeout;
 
-    private IServiceProvider _serviceProvider;
+    protected TimeSpan ActorDeactivationTimeout = DefaultActorDeactivationTimeout;
 
-    private Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
-        tracingActivity)> _tracingActivityFactory;
+    protected IServiceProvider ServiceProvider;
+
+    protected Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
+        tracingActivity)> TracingActivityFactory;
 
     public ActorSystemBuilder ConfigureServices(Action<IServiceCollection> configureServices)
     {
@@ -18,14 +19,14 @@ public sealed class ActorSystemBuilder
 
         configureServices(serviceCollection);
 
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         return this;
     }
 
     public ActorSystemBuilder WithActorDeactivationTimeout(TimeSpan actorDeactivationTimeout)
     {
-        _actorDeactivationTimeout = actorDeactivationTimeout;
+        ActorDeactivationTimeout = actorDeactivationTimeout;
 
         return this;
     }
@@ -35,26 +36,15 @@ public sealed class ActorSystemBuilder
             tracingActivity)> tracingActivityFactory
     )
     {
-        _tracingActivityFactory = tracingActivityFactory;
+        TracingActivityFactory = tracingActivityFactory;
 
         return this;
     }
 
-    public IActorSystem BuildLocalActorNode()
+    public virtual IActorSystem Build()
     {
-        var actorNode = new LocalActorNode(_serviceProvider, _actorDeactivationTimeout, _tracingActivityFactory);
+        var actorNode = new LocalActorNode(ServiceProvider, ActorDeactivationTimeout, TracingActivityFactory);
 
         return actorNode;
-    }
-
-    public IActorSystem BuildCluster()
-    {
-        var clusterActorNode = new ClusterActorNode(
-            _serviceProvider,
-            _actorDeactivationTimeout,
-            _tracingActivityFactory
-        );
-
-        return clusterActorNode;
     }
 }

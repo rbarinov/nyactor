@@ -81,7 +81,7 @@ public class RequestPropagationTest
             .ConfigureServices(
                 e => { e.AddSingleton<IClient>(new Client()); }
             )
-            .BuildLocalActorNode();
+            .Build();
 
         string key = nameof(key);
 
@@ -145,7 +145,7 @@ public class RequestPropagationTest
             .ConfigureServices(
                 e => { e.AddSingleton<IClient>(new Client()); }
             )
-            .BuildLocalActorNode();
+            .Build();
 
         string key = nameof(key);
 

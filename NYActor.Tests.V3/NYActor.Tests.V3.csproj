@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NYActor.Cluster\NYActor.Cluster.csproj" />
         <ProjectReference Include="..\NYActor.OpenTelemetry\NYActor.OpenTelemetry.csproj" />
         <ProjectReference Include="..\NYActor\NYActor.csproj" />
     </ItemGroup>
