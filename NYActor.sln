@@ -14,6 +14,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.Cluster", "NYActor.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventStore", "NYActor.EventStore\NYActor.EventStore.csproj", "{A5FE55FA-BCE4-435A-B138-69EA1E722638}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.Projections.Postgres", "NYActor.EventSourcing.Projections.Postgres\NYActor.EventSourcing.Projections.Postgres.csproj", "{E2B16CDE-38A0-47AE-904A-2CBB1C109118}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.EventStore.v5", "NYActor.EventSourcing.EventStore.v5\NYActor.EventSourcing.EventStore.v5.csproj", "{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +52,13 @@ Global
 		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2B16CDE-38A0-47AE-904A-2CBB1C109118}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2B16CDE-38A0-47AE-904A-2CBB1C109118}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2B16CDE-38A0-47AE-904A-2CBB1C109118}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2B16CDE-38A0-47AE-904A-2CBB1C109118}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -30,6 +30,7 @@ public abstract class EventSourcePersistedActor<TState> : Actor
 
         await _eventSourcePersistenceProvider.PersistEventsAsync(
                 GetType(),
+                Key,
                 Version,
                 materializedEvents
             )
@@ -47,7 +48,7 @@ public abstract class EventSourcePersistedActor<TState> : Actor
         await base.OnActivated()
             .ConfigureAwait(false);
 
-        await _eventSourcePersistenceProvider.ObservePersistedEvents(GetType())
+        await _eventSourcePersistenceProvider.ObservePersistedEvents(GetType(), Key)
             .Do(
                 e =>
                 {

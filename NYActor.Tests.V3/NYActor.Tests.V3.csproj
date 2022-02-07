@@ -18,6 +18,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NYActor.Cluster\NYActor.Cluster.csproj" />
+        <ProjectReference Include="..\NYActor.EventSourcing.EventStore.v5\NYActor.EventSourcing.EventStore.v5.csproj" />
+        <ProjectReference Include="..\NYActor.EventSourcing.Projections.Postgres\NYActor.EventSourcing.Projections.Postgres.csproj" />
         <ProjectReference Include="..\NYActor.OpenTelemetry\NYActor.OpenTelemetry.csproj" />
         <ProjectReference Include="..\NYActor\NYActor.csproj" />
     </ItemGroup>
