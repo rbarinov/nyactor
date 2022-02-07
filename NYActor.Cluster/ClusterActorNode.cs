@@ -4,7 +4,7 @@ namespace NYActor.Cluster;
 
 public class ClusterActorNode : IActorSystem
 {
-    private LocalActorNode _localActorNode;
+    private readonly LocalActorNode _localActorNode;
 
     public ClusterActorNode(
         IServiceProvider serviceProvider,

@@ -51,7 +51,7 @@ public class ClusterActorReference<TActor, TOriginalActor> : IActorReference<TAc
         {
             return await _actorSystem.GetActor<ClusterLocalProxyActor<TActor>>(_key)
                 .InvokeAsync(
-                    e => e.Proxy(_localActorNode, _key, req, actorExecutionContext),
+                    e => e.Proxy(_localActorNode, _key, req),
                     actorExecutionContext
                 );
         }
@@ -75,7 +75,7 @@ public class ClusterActorReference<TActor, TOriginalActor> : IActorReference<TAc
         {
             await _actorSystem.GetActor<ClusterLocalProxyActor<TActor>>(_key)
                 .InvokeAsync(
-                    e => e.Proxy(_localActorNode, _key, req, actorExecutionContext),
+                    e => e.Proxy(_localActorNode, _key, req),
                     actorExecutionContext
                 );
 

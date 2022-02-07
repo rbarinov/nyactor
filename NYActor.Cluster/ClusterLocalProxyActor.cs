@@ -14,8 +14,7 @@ public class ClusterLocalProxyActor<TActor> : Actor
     public Task<TResult> Proxy<TResult>(
         IActorSystem localActorNode,
         string key,
-        Expression<Func<TActor, Task<TResult>>> req,
-        ActorExecutionContext actorExecutionContext
+        Expression<Func<TActor, Task<TResult>>> req
     )
     {
         return localActorNode.GetActor<TActor>(key)
@@ -25,8 +24,7 @@ public class ClusterLocalProxyActor<TActor> : Actor
     public Task Proxy(
         IActorSystem localActorNode,
         string key,
-        Expression<Func<TActor, Task>> req,
-        ActorExecutionContext actorExecutionContext
+        Expression<Func<TActor, Task>> req
     )
     {
         return localActorNode.GetActor<TActor>(key)
