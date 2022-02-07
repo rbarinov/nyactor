@@ -2,6 +2,8 @@ namespace NYActor;
 
 public abstract class Actor : IActor
 {
+    public const string Single = nameof(Single);
+    
     public string Key { get; private set; }
 
     internal ILocalActorDispatcher SelfDispatcher { get; private set; }

@@ -1,3 +1,7 @@
+using System.Reactive;
+using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+
 namespace NYActor;
 
 public static class ActorExtensions
@@ -43,5 +47,19 @@ public static class ActorExtensions
         where TContext : ActorExecutionContext
     {
         return executionContext as TContext;
+    }
+
+    public static void EnableDeactivationDelay<TActor, TIrrelevant>(
+        this TActor actor,
+        IObservable<TIrrelevant> unsubscribe
+    )
+        where TActor : Actor
+    {
+        var interval = TimeSpan.FromMinutes(1);
+
+        Observable.Interval(interval)
+            .Do(e => actor.SelfDispatcher.DelayDeactivation(interval * 2))
+            .TakeUntil(unsubscribe)
+            .Subscribe();
     }
 }

@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.OpenTelemetry", "NY
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.Cluster", "NYActor.Cluster\NYActor.Cluster.csproj", "{D2A5E099-3476-419C-B495-7760B612E531}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventStore", "NYActor.EventStore\NYActor.EventStore.csproj", "{A5FE55FA-BCE4-435A-B138-69EA1E722638}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{D2A5E099-3476-419C-B495-7760B612E531}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2A5E099-3476-419C-B495-7760B612E531}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2A5E099-3476-419C-B495-7760B612E531}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5FE55FA-BCE4-435A-B138-69EA1E722638}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
