@@ -27,7 +27,7 @@ public class EventStoreV5EventSourcePersistenceProvider :
     public async Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
-        long exceptedVersion,
+        long expectedVersion,
         IEnumerable<object> events
     )
     {
@@ -47,12 +47,12 @@ public class EventStoreV5EventSourcePersistenceProvider :
 
         try
         {
-            await _eventStoreConnection.AppendToStreamAsync(stream, exceptedVersion, eventStoreEvents)
+            await _eventStoreConnection.AppendToStreamAsync(stream, expectedVersion, eventStoreEvents)
                 .ConfigureAwait(false);
         }
         catch (WrongExpectedVersionException e)
         {
-            if (e.ActualVersion != exceptedVersion + eventStoreEvents.Count)
+            if (e.ActualVersion != expectedVersion + eventStoreEvents.Count)
             {
                 throw;
             }

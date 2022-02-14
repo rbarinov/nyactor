@@ -5,7 +5,7 @@ public interface IEventSourcePersistenceProvider
     Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
-        long exceptedVersion,
+        long expectedVersion,
         IEnumerable<object> events
     );
 

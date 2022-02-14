@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.Proje
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.EventStore.v5", "NYActor.EventSourcing.EventStore.v5\NYActor.EventSourcing.EventStore.v5.csproj", "{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.S3", "NYActor.EventSourcing.S3\NYActor.EventSourcing.S3.csproj", "{5FEB7B01-0932-40FF-9957-F8A3F6EB9B36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B48B8532-2A0A-4F7C-AF6D-D1F7E383FE60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FEB7B01-0932-40FF-9957-F8A3F6EB9B36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FEB7B01-0932-40FF-9957-F8A3F6EB9B36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FEB7B01-0932-40FF-9957-F8A3F6EB9B36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FEB7B01-0932-40FF-9957-F8A3F6EB9B36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

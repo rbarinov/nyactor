@@ -38,7 +38,7 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
         await _eventSourcePersistenceProvider.ObservePersistedEvents(GetType(), Key)
             .Select(
                 e =>
-                    Observable.FromAsync(() => base.ApplyMultipleAsync(Enumerable.Repeat(e, 1)))
+                    Observable.FromAsync(() => base.ApplyMultipleAsync(Enumerable.Repeat(e.Event, 1)))
             )
             .Merge(1)
             .IgnoreElements()
