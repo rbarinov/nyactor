@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 namespace NYActor.EventSourcing.EventStore.v5;
 
 public class EventStoreV5EventSourcePersistenceProvider :
-    IEventSourcePersistenceProvider
+    IEventStoreV5EventSourcePersistenceProvider
 {
     private readonly IEventStoreConnection _eventStoreConnection;
     private readonly int _activationEventReadBatchSize;

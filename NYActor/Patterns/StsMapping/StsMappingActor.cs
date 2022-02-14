@@ -8,7 +8,7 @@ public class StsMappingActor : EventSourcePersistedActor<StsMappingState>
     private readonly ITimeProvider _timeProvider;
 
     public StsMappingActor(
-        IEventSourcePersistenceProvider eventSourcePersistenceProvider,
+        IEventStoreV5EventSourcePersistenceProvider eventSourcePersistenceProvider,
         ITimeProvider timeProvider
     )
         : base(eventSourcePersistenceProvider)

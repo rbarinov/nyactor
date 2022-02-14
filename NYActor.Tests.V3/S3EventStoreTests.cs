@@ -42,7 +42,7 @@ public class S3EventStoreTests
             .ConfigureServices(
                 e =>
                 {
-                    e.AddSingleton(
+                    e.AddSingleton<IS3EventSourcePersistenceProvider>(
                         new S3EventSourcePersistenceProvider(client, s3Space, directory)
                     );
 
@@ -89,7 +89,7 @@ public class S3EventStoreTests
 
     public class S3PersistedActor : EventSourcePersistedActor<S3PersistedState>
     {
-        public S3PersistedActor(S3EventSourcePersistenceProvider eventSourcePersistenceProvider)
+        public S3PersistedActor(IS3EventSourcePersistenceProvider eventSourcePersistenceProvider)
             : base(eventSourcePersistenceProvider)
         {
         }

@@ -59,7 +59,7 @@ public class EventSourceEventStoreTests
             .ConfigureServices(
                 e =>
                 {
-                    e.AddSingleton<IEventSourcePersistenceProvider>(
+                    e.AddSingleton<IEventStoreV5EventSourcePersistenceProvider>(
                         new EventStoreV5EventSourcePersistenceProvider(eventStoreConnection, 500)
                     );
 

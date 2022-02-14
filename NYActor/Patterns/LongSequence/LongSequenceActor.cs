@@ -7,7 +7,7 @@ public class LongSequenceActor : EventSourcePersistedActor<LongSequenceState>
 {
     private readonly ITimeProvider _timeProvider;
 
-    public LongSequenceActor(IEventSourcePersistenceProvider eventSourcePersistenceProvider, ITimeProvider timeProvider)
+    public LongSequenceActor(IEventStoreV5EventSourcePersistenceProvider eventSourcePersistenceProvider, ITimeProvider timeProvider)
         : base(eventSourcePersistenceProvider)
     {
         _timeProvider = timeProvider;

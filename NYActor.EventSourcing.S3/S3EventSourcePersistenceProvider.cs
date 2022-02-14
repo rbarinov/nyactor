@@ -8,7 +8,7 @@ using MessagePack;
 namespace NYActor.EventSourcing.S3;
 
 public class S3EventSourcePersistenceProvider :
-    IEventSourcePersistenceProvider
+    IS3EventSourcePersistenceProvider
 {
     private readonly AmazonS3Client _client;
     private readonly string _space;
