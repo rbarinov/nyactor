@@ -13,7 +13,7 @@ public abstract class ReminderActor : EventSourcePersistedActor<ReminderActorSta
     private Subject<Unit> _unSubscribeAll = new();
 
     protected ReminderActor(
-        IEventStoreV5EventSourcePersistenceProvider eventSourcePersistenceProvider,
+        IEventSourcePersistenceProvider eventSourcePersistenceProvider,
         ITimeProvider timeProvider
     )
         : base(eventSourcePersistenceProvider)

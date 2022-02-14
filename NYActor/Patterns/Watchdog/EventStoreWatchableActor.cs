@@ -5,7 +5,7 @@ namespace NYActor.Patterns.Watchdog;
 public abstract class EventSourcePersistedWatchableActor<T> : EventSourcePersistedActor<T>, IWatchdogClient
     where T : class, IApplicable, new()
 {
-    protected EventSourcePersistedWatchableActor(IEventStoreV5EventSourcePersistenceProvider eventSourcePersistenceProvider)
+    protected EventSourcePersistedWatchableActor(IEventSourcePersistenceProvider eventSourcePersistenceProvider)
         : base(eventSourcePersistenceProvider)
     {
     }
