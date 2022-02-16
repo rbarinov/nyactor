@@ -80,15 +80,14 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
         _events
             .Buffer(_closer)
             .Select(
-                batches => batches
-                    .Select(
-                        ev => Observable
-                            .FromAsync(
-                                () => this.Self()
-                                    .InvokeAsync(s => s.PersistEvents(ev))
+                batches => Observable
+                    .FromAsync(
+                        () => this.Self()
+                            .InvokeAsync(
+                                s => s
+                                    .PersistEvents(batches.SelectMany(ev => ev))
                             )
                     )
-                    .Merge(1)
             )
             .Merge(1)
             .TakeUntil(_unsubscribe)
