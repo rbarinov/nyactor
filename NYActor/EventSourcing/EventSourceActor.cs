@@ -3,7 +3,7 @@ namespace NYActor.EventSourcing;
 public abstract class EventSourceActor<TState> : Actor
     where TState : class, IApplicable, new()
 {
-    public EventSourceActor()
+    protected EventSourceActor()
     {
         State = new TState();
         Version = -1;
@@ -18,6 +18,11 @@ public abstract class EventSourceActor<TState> : Actor
 
         if (!materializedEvents.Any()) return Task.CompletedTask;
 
+        return OnEventsApplied(materializedEvents);
+    }
+
+    protected virtual Task OnEventsApplied<TEvent>(List<TEvent> materializedEvents) where TEvent : class
+    {
         foreach (var @event in materializedEvents)
         {
             State.Apply(@event);

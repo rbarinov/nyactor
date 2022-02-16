@@ -38,12 +38,17 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
         await _eventSourcePersistenceProvider.ObservePersistedEvents(GetType(), Key)
             .Select(
                 e =>
-                    Observable.FromAsync(() => base.ApplyMultipleAsync(Enumerable.Repeat(e.Event, 1)))
+                    Observable.FromAsync(() => OnActivationEventsApplied(Enumerable.Repeat(e.Event, 1)))
             )
             .Merge(1)
             .IgnoreElements()
             .DefaultIfEmpty()
             .ToTask()
             .ConfigureAwait(false);
+    }
+
+    protected virtual Task OnActivationEventsApplied<TEvent>(IEnumerable<TEvent> events) where TEvent : class
+    {
+        return base.OnEventsApplied(events.ToList());
     }
 }
