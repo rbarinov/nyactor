@@ -61,7 +61,9 @@ namespace NYActor.Core
                 ExecutionContext = executionContext;
                 var context = ExecutionContext?.To<RequestPropagationExecutionContext>();
 
-                var activityContext = context != null
+                var activityContext = context?.RequestPropagationValues != null &&
+                                      context.RequestPropagationValues.ContainsKey("x-b3-traceid") &&
+                                      context.RequestPropagationValues.ContainsKey("x-b3-spanid")
                     ? (ActivityContext?)new ActivityContext(
                         ActivityTraceId.CreateFromString(context.RequestPropagationValues["x-b3-traceid"]),
                         ActivitySpanId.CreateFromString(context.RequestPropagationValues["x-b3-spanid"]),
