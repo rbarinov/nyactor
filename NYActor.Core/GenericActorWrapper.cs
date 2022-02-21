@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reflection;
 using System.Threading.Tasks;
 using NYActor.Core.Extensions;
 using NYActor.Core.RequestPropagation;
@@ -54,7 +55,10 @@ namespace NYActor.Core
 
         private Activity CreateActivity(ActorExecutionContext executionContext, string callName)
         {
-            if (_node.TracingEnabled)
+            var noTracing = _actor.GetType()
+                .GetCustomAttribute<NoTracingAttribute>();
+
+            if (_node.TracingEnabled && noTracing == null)
             {
                 var activitySource = _container.GetInstance<ActivitySource>();
                 Activity.Current = null;
