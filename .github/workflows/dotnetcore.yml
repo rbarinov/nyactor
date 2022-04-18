@@ -26,9 +26,9 @@ jobs:
       run: |
         VERSION=$(echo "${{ env.VERSION_NUMBER }}.${{ env.BUILD_NUMBER }}")
         echo VERSION=$VERSION
-        dotnet pack -c Release -o packages
+        dotnet pack -c Release -o packages -p:Version=$VERSION
         for PACKAGE in packages/*.nupkg
         do
-          dotnet nuget push $PACKAGE -s https://api.nuget.org/v3/index.json -p:Version=$VERSION -k ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
+          dotnet nuget push $PACKAGE -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
         done
       shell: bash
