@@ -1,22 +1,20 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using NYActor.Core;
 
-namespace NYActor.Tests
+namespace NYActor.Tests.V3
 {
     public class ReactivationTests
     {
         [Test]
         public async Task Test()
         {
-            using var node = new Node()
-                .RegisterActorsFromAssembly(typeof(ErrorActor).Assembly);
+            using var node = new ActorSystemBuilder().Build();
 
             var actor = node.GetActor<ErrorActor>("a");
 
             await actor.InvokeAsync(e => e.Do());
+
             try
             {
                 await actor.InvokeAsync(e => e.Error());
@@ -36,7 +34,8 @@ namespace NYActor.Tests
                 return Task.CompletedTask;
             }
 
-            public Task Error() => throw new Exception();
+            public Task Error() =>
+                throw new Exception();
         }
     }
 }

@@ -54,7 +54,6 @@ namespace NYActor.Tests
             protected override async Task OnActivated()
             {
                 await base.OnActivated();
-                var a = 2 + 4;
             }
         }
 
@@ -68,7 +67,6 @@ namespace NYActor.Tests
             protected override async Task OnActivated()
             {
                 await base.OnActivated();
-                var b = 2 + 4;
             }
 
             public Task Foo() =>

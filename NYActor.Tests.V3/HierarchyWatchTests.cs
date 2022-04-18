@@ -4,19 +4,17 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using NYActor.Core;
-using NYActor.Core.Extensions;
 
-namespace NYActor.Tests
+namespace NYActor.Tests.V3
 {
     public class HierarchyWatchTests
     {
-        public static readonly TaskCompletionSource<Unit> tsc = new TaskCompletionSource<Unit>();
+        public static readonly TaskCompletionSource<Unit> Tsc = new();
 
         [Test]
         public async Task Test()
         {
-            var node = new Node().RegisterActorsFromAssembly(typeof(HierarchyWatchTests).Assembly);
+            var node = new ActorSystemBuilder().Build();
 
             var a = node.GetActor<WatchdogClientActorA>("KEY");
 
@@ -32,22 +30,23 @@ namespace NYActor.Tests
 
             await Task.Delay(20000);
 
-            tsc.SetResult(Unit.Default);
+            Tsc.SetResult(Unit.Default);
 
             await deadlock;
 
             await Task.Delay(1000);
 
-            var ignored = a.InvokeAsync(e => e.Wait());
+            a.InvokeAsync(e => e.Wait())
+                .Ignore();
+
             await Task.Delay(10000);
         }
 
         public class WatchdogClientActorA : WatchdogClientActor, IWatchdogClient
         {
-            protected override IExpressionCallable<WatchdogActor> GetWatchDog() =>
+            protected override IActorReference<WatchdogActor> GetWatchDog() =>
                 this.System()
                     .GetActor<WatchdogActorA>(Key)
-                    .Unwrap()
                     .ToBaseRef<WatchdogActor>();
 
             public Task Foo() =>
@@ -55,22 +54,21 @@ namespace NYActor.Tests
 
             public async Task Wait()
             {
-                await tsc.Task;
+                await Tsc.Task;
             }
         }
 
         public class WatchdogClientActorB : WatchdogClientActor, IWatchdogClient
         {
-            protected override IExpressionCallable<WatchdogActor> GetWatchDog() =>
+            protected override IActorReference<WatchdogActor> GetWatchDog() =>
                 this.System()
                     .GetActor<WatchdogActorB>(Key)
-                    .Unwrap()
                     .ToBaseRef<WatchdogActor>();
         }
 
         public abstract class WatchdogClientActor : Actor
         {
-            protected abstract IExpressionCallable<WatchdogActor> GetWatchDog();
+            protected abstract IActorReference<WatchdogActor> GetWatchDog();
 
             protected override async Task OnActivated()
             {
@@ -97,7 +95,7 @@ namespace NYActor.Tests
 
         public abstract class WatchdogActor : Actor
         {
-            protected abstract IExpressionCallable<IWatchdogClient> GetWatchdogClient();
+            protected abstract IActorReference<IWatchdogClient> GetWatchdogClient();
 
             private ISubject<Unit> _unsubscribe;
 
@@ -135,19 +133,17 @@ namespace NYActor.Tests
 
         public class WatchdogActorA : WatchdogActor
         {
-            protected override IExpressionCallable<IWatchdogClient> GetWatchdogClient() =>
+            protected override IActorReference<IWatchdogClient> GetWatchdogClient() =>
                 this.System()
                     .GetActor<WatchdogClientActorA>(Key)
-                    .Unwrap()
                     .ToBaseRef<IWatchdogClient>();
         }
 
         public class WatchdogActorB : WatchdogActor
         {
-            protected override IExpressionCallable<IWatchdogClient> GetWatchdogClient() =>
+            protected override IActorReference<IWatchdogClient> GetWatchdogClient() =>
                 this.System()
                     .GetActor<WatchdogClientActorB>(Key)
-                    .Unwrap()
                     .ToBaseRef<IWatchdogClient>();
         }
     }
