@@ -26,7 +26,6 @@ jobs:
       run: |
         VERSION=$(echo "${{ env.VERSION_NUMBER }}.${{ env.BUILD_NUMBER }}")
         echo VERSION=$VERSION
-        docker push $IMAGE_ID:$VERSION
         dotnet pack -c Release -o packages
         for PACKAGE in packages/*.nupkg
         do
