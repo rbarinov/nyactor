@@ -25,11 +25,11 @@ public class S3EventSourcePersistenceProvider :
         _directory = directory;
     }
 
-    public async Task PersistEventsAsync(
+    public async Task PersistEventsAsync<TEvent>(
         Type eventSourcePersistedActorType,
         string key,
         long expectedVersion,
-        IEnumerable<object> events
+        IEnumerable<byte[]> events
     )
     {
         var fileName = GetStreamName(eventSourcePersistedActorType, key);
@@ -42,7 +42,11 @@ public class S3EventSourcePersistenceProvider :
         {
             await using var download = await Download(_directory, fileName);
 
-            var storedEvents = MessagePackSerializer.Deserialize<List<S3EventData>>(download);
+            var storedEvents = MessagePackSerializer.Deserialize<List<S3EventData>>(
+                download,
+                MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
+            );
+
             fileData.AddRange(storedEvents);
             position = storedEvents.Count - 1;
         }
@@ -56,13 +60,18 @@ public class S3EventSourcePersistenceProvider :
             events.Select(
                 (e, i) => new S3EventData(
                     position++,
-                    $"{e.GetType().FullName},{e.GetType().Assembly.GetName().Name}",
-                    SerializeEvent(e)
+                    $"{typeof(TEvent).FullName},{typeof(TEvent).Assembly.GetName().Name}",
+                    e
                 )
             )
         );
 
-        await using var file = new MemoryStream(MessagePackSerializer.Serialize(fileData));
+        await using var file = new MemoryStream(
+            MessagePackSerializer.Serialize(
+                fileData,
+                MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
+            )
+        );
 
         await Upload(_directory, fileName, file);
     }
@@ -70,25 +79,6 @@ public class S3EventSourcePersistenceProvider :
     protected virtual string GetStreamName(Type eventSourcePersistedActorType, string key)
     {
         return $"{eventSourcePersistedActorType.FullName}-{key}";
-    }
-
-    protected virtual byte[] SerializeEvent(object @event)
-    {
-        return MessagePackSerializer.Serialize(@event);
-    }
-
-    protected virtual object DeserializeEvent(string typeName, byte[] eventData)
-    {
-        var type = Type.GetType(typeName);
-
-        if (type == null)
-        {
-            return null;
-        }
-
-        var @event = MessagePackSerializer.Deserialize(type, eventData);
-
-        return @event;
     }
 
     public IObservable<EventSourceEventContainer> ObservePersistedEvents(
@@ -108,7 +98,10 @@ public class S3EventSourcePersistenceProvider :
                     {
                         await using var stream = await Download(_directory, fileName);
 
-                        var events = MessagePackSerializer.Deserialize<List<S3EventData>>(stream);
+                        var events = MessagePackSerializer.Deserialize<List<S3EventData>>(
+                            stream,
+                            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
+                        );
 
                         return events;
                     }
@@ -118,16 +111,11 @@ public class S3EventSourcePersistenceProvider :
             )
             .SelectMany(
                 e => e.Select(
-                    ev =>
-                    {
-                        var typeName = ev.EventTypeName;
-                        var @event = DeserializeEvent(typeName, ev.Event);
-
-                        return new EventSourceEventContainer(
-                            ev.Position.ToString(),
-                            @event
-                        );
-                    }
+                    ev => new EventSourceEventContainer(
+                        ev.Position.ToString(),
+                        ev.EventTypeName,
+                        ev.Event
+                    )
                 )
             );
     }

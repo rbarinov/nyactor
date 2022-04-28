@@ -7,6 +7,7 @@ using System.Reactive.Threading.Tasks;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Amazon.S3;
+using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using NYActor.EventSourcing;
@@ -96,6 +97,23 @@ public class S3EventStoreTests
         public S3PersistedActor(IS3EventSourcePersistenceProvider eventSourcePersistenceProvider)
             : base(eventSourcePersistenceProvider)
         {
+        }
+
+        protected override byte[] SerializeEvent<TEvent>(TEvent @event)
+        {
+            return MessagePackSerializer.Serialize(@event);
+        }
+
+        protected override object DeserializeEvent(EventSourceEventContainer eventContainer)
+        {
+            var type = Type.GetType(eventContainer.EventType);
+
+            if (type == null)
+            {
+                return null;
+            }
+
+            return MessagePackSerializer.Deserialize(type, eventContainer.Event);
         }
 
         public async Task Set(string message)
