@@ -34,7 +34,7 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
             await ApplyMultipleAsync(events);
         }
 
-        protected override async Task OnActivationEventsApplied<TEvent>(IEnumerable<TEvent> events)
+        protected override async Task OnActivationEventsApplied(IEnumerable<EventSourceEventContainer> events)
         {
             await base.OnActivationEventsApplied(events);
 

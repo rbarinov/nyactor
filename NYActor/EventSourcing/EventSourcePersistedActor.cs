@@ -1,5 +1,9 @@
 ﻿using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace NYActor.EventSourcing;
 
@@ -7,10 +11,44 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
     where TState : class, IApplicable, new()
 {
     private readonly IEventSourcePersistenceProvider _eventSourcePersistenceProvider;
+    private readonly JsonSerializerSettings _jsonSerializerSettings;
 
     protected EventSourcePersistedActor(IEventSourcePersistenceProvider eventSourcePersistenceProvider)
     {
         _eventSourcePersistenceProvider = eventSourcePersistenceProvider;
+
+        _jsonSerializerSettings = new JsonSerializerSettings
+        {
+            ContractResolver = new CamelCasePropertyNamesContractResolver()
+        };
+
+        _jsonSerializerSettings.Converters.Add(new StringEnumConverter(true));
+    }
+
+    protected virtual byte[] SerializeEvent<TEvent>(TEvent @event)
+    {
+        return Encoding.UTF8.GetBytes(
+            JsonConvert.SerializeObject(
+                @event,
+                _jsonSerializerSettings
+            )
+        );
+    }
+
+    protected virtual object DeserializeEvent(EventSourceEventContainer eventContainer)
+    {
+        var json = Encoding.UTF8.GetString(eventContainer.Event);
+
+        var type = Type.GetType(eventContainer.EventType);
+
+        if (type == null)
+        {
+            return null;
+        }
+
+        var @event = JsonConvert.DeserializeObject(json, type);
+
+        return @event;
     }
 
     protected override async Task ApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events)
@@ -19,11 +57,11 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
 
         if (!materializedEvents.Any()) return;
 
-        await _eventSourcePersistenceProvider.PersistEventsAsync(
+        await _eventSourcePersistenceProvider.PersistEventsAsync<TEvent>(
                 GetType(),
                 Key,
                 Version,
-                materializedEvents
+                materializedEvents.Select(SerializeEvent)
             )
             .ConfigureAwait(false);
 
@@ -38,7 +76,7 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
         await _eventSourcePersistenceProvider.ObservePersistedEvents(GetType(), Key)
             .Select(
                 e =>
-                    Observable.FromAsync(() => OnActivationEventsApplied(Enumerable.Repeat(e.Event, 1)))
+                    Observable.FromAsync(() => OnActivationEventsApplied(Enumerable.Repeat(e, 1)))
             )
             .Merge(1)
             .IgnoreElements()
@@ -47,8 +85,11 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
             .ConfigureAwait(false);
     }
 
-    protected virtual Task OnActivationEventsApplied<TEvent>(IEnumerable<TEvent> events) where TEvent : class
+    protected virtual Task OnActivationEventsApplied(IEnumerable<EventSourceEventContainer> events)
     {
-        return base.OnEventsApplied(events.ToList());
+        return base.OnEventsApplied(
+            events.Select(DeserializeEvent)
+                .ToList()
+        );
     }
 }

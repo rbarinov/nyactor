@@ -25,11 +25,11 @@ public class S3EventSourcePersistenceProvider :
         _directory = directory;
     }
 
-    public async Task PersistEventsAsync(
+    public async Task PersistEventsAsync<TEvent>(
         Type eventSourcePersistedActorType,
         string key,
         long expectedVersion,
-        IEnumerable<object> events
+        IEnumerable<byte[]> events
     )
     {
         var fileName = GetStreamName(eventSourcePersistedActorType, key);
@@ -42,13 +42,13 @@ public class S3EventSourcePersistenceProvider :
         {
             await using var download = await Download(_directory, fileName);
 
-            var stored = await MessagePackSerializer.Typeless.DeserializeAsync(download);
+            var storedEvents = MessagePackSerializer.Deserialize<List<S3EventData>>(
+                download,
+                MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
+            );
 
-            if (stored is List<S3EventData> storedEvents)
-            {
-                fileData.AddRange(storedEvents);
-                position = storedEvents.Count - 1;
-            }
+            fileData.AddRange(storedEvents);
+            position = storedEvents.Count - 1;
         }
 
         if (position != expectedVersion)
@@ -58,11 +58,20 @@ public class S3EventSourcePersistenceProvider :
 
         fileData.AddRange(
             events.Select(
-                (e, i) => new S3EventData(position++, e)
+                (e, i) => new S3EventData(
+                    position++,
+                    $"{typeof(TEvent).FullName},{typeof(TEvent).Assembly.GetName().Name}",
+                    e
+                )
             )
         );
 
-        await using var file = new MemoryStream(MessagePackSerializer.Typeless.Serialize(fileData));
+        await using var file = new MemoryStream(
+            MessagePackSerializer.Serialize(
+                fileData,
+                MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
+            )
+        );
 
         await Upload(_directory, fileName, file);
     }
@@ -89,20 +98,23 @@ public class S3EventSourcePersistenceProvider :
                     {
                         await using var stream = await Download(_directory, fileName);
 
-                        var events = await MessagePackSerializer.Typeless.DeserializeAsync(stream);
+                        var events = MessagePackSerializer.Deserialize<List<S3EventData>>(
+                            stream,
+                            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
+                        );
 
                         return events;
                     }
 
-                    return null;
+                    return new List<S3EventData>();
                 }
             )
-            .OfType<IEnumerable<S3EventData>>()
             .SelectMany(
                 e => e.Select(
                     ev => new EventSourceEventContainer(
                         ev.Position.ToString(),
-                        ev.Data
+                        ev.EventTypeName,
+                        ev.Event
                     )
                 )
             );
@@ -151,26 +163,16 @@ public class S3EventSourcePersistenceProvider :
         Stream file
     )
     {
-        try
-        {
-            var fileTransferUtility = new TransferUtility(_client);
+        var fileTransferUtility = new TransferUtility(_client);
 
-            var fileTransferUtilityRequest = new TransferUtilityUploadRequest
-            {
-                InputStream = file,
-                BucketName = _space + "/" + directory,
-                Key = fileName,
-            };
+        var fileTransferUtilityRequest = new TransferUtilityUploadRequest
+        {
+            InputStream = file,
+            BucketName = _space + "/" + directory,
+            Key = fileName,
+        };
 
-            await fileTransferUtility.UploadAsync(fileTransferUtilityRequest);
-        }
-        catch (AmazonS3Exception)
-        {
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
+        await fileTransferUtility.UploadAsync(fileTransferUtilityRequest);
     }
 
     private async Task<Stream> Download(

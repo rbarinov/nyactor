@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Reactive.Linq;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Amazon.S3;
 using EventStore.ClientAPI;
@@ -127,7 +128,7 @@ public class EventSourceThrottledTests
     [Parallelizable(ParallelScope.All)]
     public async Task TestSingle(string store)
     {
-        var throttled = GetActor(store, "single");
+        var throttled = GetActor(store, Guid.NewGuid().ToString());
 
         await Observable
             .Range(0, 5)
@@ -312,10 +313,16 @@ public class EventSourceThrottledTests
         }
     }
 
+    [DataContract]
     public class SimpleEvent
     {
+        [DataMember(Order = 1)]
         public string Key { get; }
+
+        [DataMember(Order = 2)]
         public DateTime EventAt { get; }
+
+        [DataMember(Order = 3)]
         public long Num { get; }
 
         public SimpleEvent(string key, DateTime eventAt, long num)

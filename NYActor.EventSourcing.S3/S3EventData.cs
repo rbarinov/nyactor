@@ -1,19 +1,23 @@
-using MessagePack;
+using System.Runtime.Serialization;
 
 namespace NYActor.EventSourcing.S3;
 
-[MessagePackObject]
+[DataContract]
 public class S3EventData
 {
-    [Key(0)]
+    [DataMember(Order = 0)]
     public long Position { get; }
 
-    [Key(1)]
-    public object Data { get; }
+    [DataMember(Order = 1)]
+    public string EventTypeName { get; }
 
-    public S3EventData(long position, object data)
+    [DataMember(Order = 2)]
+    public byte[] Event { get; }
+
+    public S3EventData(long position, string eventTypeName, byte[] @event)
     {
         Position = position;
-        Data = data;
+        EventTypeName = eventTypeName;
+        Event = @event;
     }
 }
