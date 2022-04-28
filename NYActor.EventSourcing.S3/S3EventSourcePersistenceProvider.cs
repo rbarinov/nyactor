@@ -42,13 +42,9 @@ public class S3EventSourcePersistenceProvider :
         {
             await using var download = await Download(_directory, fileName);
 
-            var stored = await MessagePackSerializer.Typeless.DeserializeAsync(download);
-
-            if (stored is List<S3EventData> storedEvents)
-            {
-                fileData.AddRange(storedEvents);
-                position = storedEvents.Count - 1;
-            }
+            var storedEvents = MessagePackSerializer.Deserialize<List<S3EventData>>(download);
+            fileData.AddRange(storedEvents);
+            position = storedEvents.Count - 1;
         }
 
         if (position != expectedVersion)
@@ -58,11 +54,15 @@ public class S3EventSourcePersistenceProvider :
 
         fileData.AddRange(
             events.Select(
-                (e, i) => new S3EventData(position++, e)
+                (e, i) => new S3EventData(
+                    position++,
+                    $"{e.GetType().FullName},{e.GetType().Assembly.GetName().Name}",
+                    SerializeEvent(e)
+                )
             )
         );
 
-        await using var file = new MemoryStream(MessagePackSerializer.Typeless.Serialize(fileData));
+        await using var file = new MemoryStream(MessagePackSerializer.Serialize(fileData));
 
         await Upload(_directory, fileName, file);
     }
@@ -70,6 +70,25 @@ public class S3EventSourcePersistenceProvider :
     protected virtual string GetStreamName(Type eventSourcePersistedActorType, string key)
     {
         return $"{eventSourcePersistedActorType.FullName}-{key}";
+    }
+
+    protected virtual byte[] SerializeEvent(object @event)
+    {
+        return MessagePackSerializer.Serialize(@event);
+    }
+
+    protected virtual object DeserializeEvent(string typeName, byte[] eventData)
+    {
+        var type = Type.GetType(typeName);
+
+        if (type == null)
+        {
+            return null;
+        }
+
+        var @event = MessagePackSerializer.Deserialize(type, eventData);
+
+        return @event;
     }
 
     public IObservable<EventSourceEventContainer> ObservePersistedEvents(
@@ -89,21 +108,26 @@ public class S3EventSourcePersistenceProvider :
                     {
                         await using var stream = await Download(_directory, fileName);
 
-                        var events = await MessagePackSerializer.Typeless.DeserializeAsync(stream);
+                        var events = MessagePackSerializer.Deserialize<List<S3EventData>>(stream);
 
                         return events;
                     }
 
-                    return null;
+                    return new List<S3EventData>();
                 }
             )
-            .OfType<IEnumerable<S3EventData>>()
             .SelectMany(
                 e => e.Select(
-                    ev => new EventSourceEventContainer(
-                        ev.Position.ToString(),
-                        ev.Data
-                    )
+                    ev =>
+                    {
+                        var typeName = ev.EventTypeName;
+                        var @event = DeserializeEvent(typeName, ev.Event);
+
+                        return new EventSourceEventContainer(
+                            ev.Position.ToString(),
+                            @event
+                        );
+                    }
                 )
             );
     }
@@ -151,26 +175,16 @@ public class S3EventSourcePersistenceProvider :
         Stream file
     )
     {
-        try
-        {
-            var fileTransferUtility = new TransferUtility(_client);
+        var fileTransferUtility = new TransferUtility(_client);
 
-            var fileTransferUtilityRequest = new TransferUtilityUploadRequest
-            {
-                InputStream = file,
-                BucketName = _space + "/" + directory,
-                Key = fileName,
-            };
+        var fileTransferUtilityRequest = new TransferUtilityUploadRequest
+        {
+            InputStream = file,
+            BucketName = _space + "/" + directory,
+            Key = fileName,
+        };
 
-            await fileTransferUtility.UploadAsync(fileTransferUtilityRequest);
-        }
-        catch (AmazonS3Exception)
-        {
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
+        await fileTransferUtility.UploadAsync(fileTransferUtilityRequest);
     }
 
     private async Task<Stream> Download(

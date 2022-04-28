@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,8 +54,10 @@ public class S3EventStoreTests
         var single = actorSystem.GetActor<S3PersistedActor>($"s3-test-single-{actorKey}");
         var multiple = actorSystem.GetActor<S3PersistedActor>($"s3-test-multiple-{actorKey}");
 
+        var concurrency = 10;
+
         await Observable
-            .Range(1, 10)
+            .Range(1, concurrency)
             .Select(
                 e => Observable
                     .FromAsync(
@@ -68,15 +70,17 @@ public class S3EventStoreTests
 
         var singleInfo = await single.InvokeAsync(e => e.GetInfo());
 
-        Assert.AreEqual(10, singleInfo.Count);
+        Assert.AreEqual(concurrency, singleInfo.Count);
+
+        var messagesCount = 100;
 
         await Observable
-            .Range(1, 10)
+            .Range(1, concurrency)
             .Select(
                 e => Observable
                     .FromAsync(
                         () => multiple
-                            .InvokeAsync(a => a.Set(100, "message #" + e))
+                            .InvokeAsync(a => a.Set(messagesCount, "message #" + e))
                     )
             )
             .Merge()
@@ -84,7 +88,7 @@ public class S3EventStoreTests
 
         var multipleInfo = await multiple.InvokeAsync(e => e.GetInfo());
 
-        Assert.AreEqual(1000, multipleInfo.Count);
+        Assert.AreEqual(concurrency * messagesCount, multipleInfo.Count);
     }
 
     public class S3PersistedActor : EventSourcePersistedActor<S3PersistedState>
@@ -130,11 +134,17 @@ public class S3EventStoreTests
         }
     }
 
+    [DataContract]
     public class S3Event
     {
-        public string Key { get; }
-        public DateTime EventAt { get; }
-        public string Message { get; }
+        [DataMember(Order = 0)]
+        public string Key { get; set; }
+
+        [DataMember(Order = 1)]
+        public DateTime EventAt { get; set; }
+
+        [DataMember(Order = 2)]
+        public string Message { get; set; }
 
         public S3Event(string key, DateTime eventAt, string message)
         {
