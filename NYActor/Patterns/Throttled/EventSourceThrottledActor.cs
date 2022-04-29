@@ -1,6 +1,8 @@
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text;
+using Newtonsoft.Json;
 using NYActor.EventSourcing;
 
 namespace NYActor.Patterns.Throttled;
@@ -39,6 +41,16 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
             await base.OnActivationEventsApplied(events);
 
             await _throttledActor.OnEventsApplied(events.ToList());
+        }
+
+        protected override byte[] SerializeEvent<TEvent>(TEvent @event)
+        {
+            return _throttledActor.SerializeEvent(@event);
+        }
+
+        protected override object DeserializeEvent(EventSourceEventContainer eventContainer)
+        {
+            return _throttledActor.DeserializeEvent(eventContainer);
         }
 
         public TState GetState() =>
@@ -127,5 +139,31 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
         _closer.OnNext(Unit.Default);
 
         return Task.CompletedTask;
+    }
+
+    protected virtual byte[] SerializeEvent<TEvent>(TEvent @event)
+    {
+        return Encoding.UTF8.GetBytes(
+            JsonConvert.SerializeObject(
+                @event,
+                JsonSerializerConfig.Settings
+            )
+        );
+    }
+
+    protected virtual object DeserializeEvent(EventSourceEventContainer eventContainer)
+    {
+        var json = Encoding.UTF8.GetString(eventContainer.Event);
+
+        var type = Type.GetType(eventContainer.EventType);
+
+        if (type == null)
+        {
+            return null;
+        }
+
+        var @event = JsonConvert.DeserializeObject(json, type);
+
+        return @event;
     }
 }
