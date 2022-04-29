@@ -2,8 +2,6 @@
 using System.Reactive.Threading.Tasks;
 using System.Text;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
 
 namespace NYActor.EventSourcing;
 
@@ -11,18 +9,10 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
     where TState : class, IApplicable, new()
 {
     private readonly IEventSourcePersistenceProvider _eventSourcePersistenceProvider;
-    private readonly JsonSerializerSettings _jsonSerializerSettings;
 
     protected EventSourcePersistedActor(IEventSourcePersistenceProvider eventSourcePersistenceProvider)
     {
         _eventSourcePersistenceProvider = eventSourcePersistenceProvider;
-
-        _jsonSerializerSettings = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
-
-        _jsonSerializerSettings.Converters.Add(new StringEnumConverter(true));
     }
 
     protected virtual byte[] SerializeEvent<TEvent>(TEvent @event)
@@ -30,7 +20,7 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
         return Encoding.UTF8.GetBytes(
             JsonConvert.SerializeObject(
                 @event,
-                _jsonSerializerSettings
+                JsonSerializerConfig.Settings
             )
         );
     }
