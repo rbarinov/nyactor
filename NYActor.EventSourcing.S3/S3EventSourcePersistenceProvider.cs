@@ -25,11 +25,11 @@ public class S3EventSourcePersistenceProvider :
         _directory = directory;
     }
 
-    public async Task PersistEventsAsync<TEvent>(
+    public async Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
         long expectedVersion,
-        IEnumerable<byte[]> events
+        IEnumerable<EventSourceEventData> events
     )
     {
         var fileName = GetStreamName(eventSourcePersistedActorType, key);
@@ -60,8 +60,8 @@ public class S3EventSourcePersistenceProvider :
             events.Select(
                 (e, i) => new S3EventData(
                     position++,
-                    $"{typeof(TEvent).FullName},{typeof(TEvent).Assembly.GetName().Name}",
-                    e
+                    e.EventType,
+                    e.Event
                 )
             )
         );
@@ -113,8 +113,7 @@ public class S3EventSourcePersistenceProvider :
                 e => e.Select(
                     ev => new EventSourceEventContainer(
                         ev.Position.ToString(),
-                        ev.EventTypeName,
-                        ev.Event
+                        new EventSourceEventData(ev.EventTypeName, ev.Event)
                     )
                 )
             );

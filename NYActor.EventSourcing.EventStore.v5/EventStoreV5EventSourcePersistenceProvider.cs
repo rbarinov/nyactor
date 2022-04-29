@@ -22,20 +22,20 @@ public class EventStoreV5EventSourcePersistenceProvider :
         _activationEventReadBatchSize = activationEventReadBatchSize;
     }
 
-    public async Task PersistEventsAsync<TEvent>(
+    public async Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
         long expectedVersion,
-        IEnumerable<byte[]> events
+        IEnumerable<EventSourceEventData> events
     )
     {
         var eventStoreEvents = events
             .Select(
                 e => new EventData(
                     Guid.NewGuid(),
-                    $"{typeof(TEvent).FullName},{typeof(TEvent).Assembly.GetName().Name}",
+                    e.EventType,
                     true,
-                    e,
+                    e.Event,
                     null
                 )
             )
@@ -108,8 +108,7 @@ public class EventStoreV5EventSourcePersistenceProvider :
 
                     return new EventSourceEventContainer(
                         position,
-                        e.Event.EventType,
-                        e.Event.Data
+                        new EventSourceEventData(e.Event.EventType, e.Event.Data)
                     );
                 }
             );
@@ -159,8 +158,7 @@ public class EventStoreV5EventSourcePersistenceProvider :
                             observer.OnNext(
                                 new EventSourceEventContainer(
                                     $"{currentCommitPosition}-{currentPreparePosition}",
-                                    ese.Event.EventType,
-                                    ese.Event.Data
+                                    new EventSourceEventData(ese.Event.EventType, ese.Event.Data)
                                 )
                             );
 

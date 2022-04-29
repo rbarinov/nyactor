@@ -12,7 +12,7 @@ public abstract class EventSourceActor<TState> : Actor
     protected Task ApplySingleAsync<TEvent>(TEvent @event) where TEvent : class =>
         ApplyMultipleAsync(Enumerable.Repeat(@event, 1));
 
-    protected virtual Task ApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events) where TEvent : class
+    protected virtual Task ApplyMultipleAsync(IEnumerable<object> events)
     {
         var materializedEvents = events.ToList();
 

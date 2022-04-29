@@ -17,14 +17,14 @@ public class EventSourceOverrideStreamPersistenceProvider : IEventSourcePersiste
         _key = key;
     }
 
-    public Task PersistEventsAsync<TEvent>(
+    public Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
         long expectedVersion,
-        IEnumerable<byte[]> events
+        IEnumerable<EventSourceEventData> events
     )
     {
-        return _eventSourcePersistenceProvider.PersistEventsAsync<TEvent>(_type, _key, expectedVersion, events);
+        return _eventSourcePersistenceProvider.PersistEventsAsync(_type, _key, expectedVersion, events);
     }
 
     public IObservable<EventSourceEventContainer> ObservePersistedEvents(Type eventSourcePersistedActorType, string key)

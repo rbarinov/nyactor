@@ -99,21 +99,24 @@ public class S3EventStoreTests
         {
         }
 
-        protected override byte[] SerializeEvent<TEvent>(TEvent @event)
+        protected override EventSourceEventData SerializeEvent(object @event)
         {
-            return MessagePackSerializer.Serialize(@event);
+            return new EventSourceEventData(
+                $"{@event.GetType().FullName},{@event.GetType().Assembly.GetName().Name}",
+                MessagePackSerializer.Serialize(@event)
+            );
         }
 
         protected override object DeserializeEvent(EventSourceEventContainer eventContainer)
         {
-            var type = Type.GetType(eventContainer.EventType);
+            var type = Type.GetType(eventContainer.EventData.EventType);
 
             if (type == null)
             {
                 return null;
             }
 
-            return MessagePackSerializer.Deserialize(type, eventContainer.Event);
+            return MessagePackSerializer.Deserialize(type, eventContainer.EventData.Event);
         }
 
         public async Task Set(string message)

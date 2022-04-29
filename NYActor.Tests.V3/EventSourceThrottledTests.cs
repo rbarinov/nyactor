@@ -128,7 +128,11 @@ public class EventSourceThrottledTests
     [Parallelizable(ParallelScope.All)]
     public async Task TestSingle(string store)
     {
-        var throttled = GetActor(store, Guid.NewGuid().ToString());
+        var throttled = GetActor(
+            store,
+            Guid.NewGuid()
+                .ToString()
+        );
 
         await Observable
             .Range(0, 5)
