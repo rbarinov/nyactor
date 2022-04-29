@@ -37,15 +37,15 @@ public abstract class EventSourceWriteProjectionBaseActor : Actor
 
         _eventSourcePersistenceProvider.ObserveAllEvents(syncPosition.SyncPosition)
             .TakeUntil(_unsubscribeAll)
-            .Select(e => new EventSourceEvent(e.Position, e.EventType, DeserializeEvent(e)))
+            .Select(e => new EventSourceEvent(e.Position, e.EventData.EventType, DeserializeEvent(e)))
             .Subscribe(_eventSubject);
     }
 
     protected virtual object DeserializeEvent(EventSourceEventContainer eventContainer)
     {
-        var json = Encoding.UTF8.GetString(eventContainer.Event);
+        var json = Encoding.UTF8.GetString(eventContainer.EventData.Event);
 
-        var type = Type.GetType(eventContainer.EventType);
+        var type = Type.GetType(eventContainer.EventData.EventType);
 
         if (type == null)
         {

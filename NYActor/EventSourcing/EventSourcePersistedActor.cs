@@ -15,21 +15,24 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
         _eventSourcePersistenceProvider = eventSourcePersistenceProvider;
     }
 
-    protected virtual byte[] SerializeEvent<TEvent>(TEvent @event)
+    protected virtual EventSourceEventData SerializeEvent(object @event)
     {
-        return Encoding.UTF8.GetBytes(
-            JsonConvert.SerializeObject(
-                @event,
-                JsonSerializerConfig.Settings
+        return new EventSourceEventData(
+            $"{@event.GetType().FullName},{@event.GetType().Assembly.GetName().Name}",
+            Encoding.UTF8.GetBytes(
+                JsonConvert.SerializeObject(
+                    @event,
+                    JsonSerializerConfig.Settings
+                )
             )
         );
     }
 
     protected virtual object DeserializeEvent(EventSourceEventContainer eventContainer)
     {
-        var json = Encoding.UTF8.GetString(eventContainer.Event);
+        var json = Encoding.UTF8.GetString(eventContainer.EventData.Event);
 
-        var type = Type.GetType(eventContainer.EventType);
+        var type = Type.GetType(eventContainer.EventData.EventType);
 
         if (type == null)
         {
@@ -41,13 +44,13 @@ public abstract class EventSourcePersistedActor<TState> : EventSourceActor<TStat
         return @event;
     }
 
-    protected override async Task ApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events)
+    protected override async Task ApplyMultipleAsync(IEnumerable<object> events)
     {
         var materializedEvents = events.ToList();
 
         if (!materializedEvents.Any()) return;
 
-        await _eventSourcePersistenceProvider.PersistEventsAsync<TEvent>(
+        await _eventSourcePersistenceProvider.PersistEventsAsync(
                 GetType(),
                 Key,
                 Version,

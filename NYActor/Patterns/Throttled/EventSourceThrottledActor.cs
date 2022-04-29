@@ -38,12 +38,22 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
 
         protected override async Task OnActivationEventsApplied(IEnumerable<EventSourceEventContainer> events)
         {
-            await base.OnActivationEventsApplied(events);
+            var materializedEvents = events.ToList();
 
-            await _throttledActor.OnEventsApplied(events.ToList());
+            if (!materializedEvents.Any())
+            {
+                return;
+            }
+
+            await base.OnActivationEventsApplied(materializedEvents);
+
+            await _throttledActor.OnEventsApplied(
+                materializedEvents.Select(DeserializeEvent)
+                    .ToList()
+            );
         }
 
-        protected override byte[] SerializeEvent<TEvent>(TEvent @event)
+        protected override EventSourceEventData SerializeEvent(object @event)
         {
             return _throttledActor.SerializeEvent(@event);
         }
@@ -108,7 +118,7 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
         Observable
             .Interval(ThrottlingInterval)
             .TakeUntil(_unsubscribe)
-            .Subscribe(e => _closer.OnNext(Unit.Default));
+            .Subscribe(_ => _closer.OnNext(Unit.Default));
     }
 
     private async Task PersistEvents(IEnumerable<object> events)
@@ -124,7 +134,7 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
         await base.OnDeactivated();
     }
 
-    protected override async Task ApplyMultipleAsync<TEvent>(IEnumerable<TEvent> events)
+    protected override async Task ApplyMultipleAsync(IEnumerable<object> events)
     {
         var materializedEvents = events.ToList();
 
@@ -141,21 +151,24 @@ public abstract class EventSourceThrottledActor<TState> : EventSourceActor<TStat
         return Task.CompletedTask;
     }
 
-    protected virtual byte[] SerializeEvent<TEvent>(TEvent @event)
+    protected virtual EventSourceEventData SerializeEvent(object @event)
     {
-        return Encoding.UTF8.GetBytes(
-            JsonConvert.SerializeObject(
-                @event,
-                JsonSerializerConfig.Settings
+        return new EventSourceEventData(
+            $"{@event.GetType().FullName},{@event.GetType().Assembly.GetName().Name}",
+            Encoding.UTF8.GetBytes(
+                JsonConvert.SerializeObject(
+                    @event,
+                    JsonSerializerConfig.Settings
+                )
             )
         );
     }
 
     protected virtual object DeserializeEvent(EventSourceEventContainer eventContainer)
     {
-        var json = Encoding.UTF8.GetString(eventContainer.Event);
+        var json = Encoding.UTF8.GetString(eventContainer.EventData.Event);
 
-        var type = Type.GetType(eventContainer.EventType);
+        var type = Type.GetType(eventContainer.EventData.EventType);
 
         if (type == null)
         {

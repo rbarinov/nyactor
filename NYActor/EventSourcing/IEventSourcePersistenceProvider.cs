@@ -2,11 +2,11 @@ namespace NYActor.EventSourcing;
 
 public interface IEventSourcePersistenceProvider
 {
-    Task PersistEventsAsync<TEvent>(
+    Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
         long expectedVersion,
-        IEnumerable<byte[]> events
+        IEnumerable<EventSourceEventData> events
     );
 
     IObservable<EventSourceEventContainer> ObservePersistedEvents(
