@@ -1,16 +1,14 @@
 ﻿using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Text;
 using System.Text.RegularExpressions;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
-using Newtonsoft.Json;
 
 namespace NYActor.EventSourcing.EventStore.v5;
 
 public class EventStoreV5EventSourcePersistenceProvider :
-    IEventSourcePersistenceProvider
+    IEventStoreV5EventSourcePersistenceProvider
 {
     private readonly IEventStoreConnection _eventStoreConnection;
     private readonly int _activationEventReadBatchSize;
@@ -27,17 +25,17 @@ public class EventStoreV5EventSourcePersistenceProvider :
     public async Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
-        long exceptedVersion,
-        IEnumerable<object> events
+        long expectedVersion,
+        IEnumerable<EventSourceEventData> events
     )
     {
         var eventStoreEvents = events
             .Select(
                 e => new EventData(
                     Guid.NewGuid(),
-                    $"{e.GetType().FullName},{e.GetType().Assembly.GetName().Name}",
+                    e.EventType,
                     true,
-                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(e)),
+                    e.Event,
                     null
                 )
             )
@@ -47,12 +45,12 @@ public class EventStoreV5EventSourcePersistenceProvider :
 
         try
         {
-            await _eventStoreConnection.AppendToStreamAsync(stream, exceptedVersion, eventStoreEvents)
+            await _eventStoreConnection.AppendToStreamAsync(stream, expectedVersion, eventStoreEvents)
                 .ConfigureAwait(false);
         }
         catch (WrongExpectedVersionException e)
         {
-            if (e.ActualVersion != exceptedVersion + eventStoreEvents.Count)
+            if (e.ActualVersion != expectedVersion + eventStoreEvents.Count)
             {
                 throw;
             }
@@ -62,20 +60,6 @@ public class EventStoreV5EventSourcePersistenceProvider :
     protected virtual string GetStreamName(Type eventSourcePersistedActorType, string key)
     {
         return $"{eventSourcePersistedActorType.FullName}-{key}";
-    }
-
-    protected virtual object DeserializeEvent(string typeName, string json)
-    {
-        var type = Type.GetType(typeName);
-
-        if (type == null)
-        {
-            return null;
-        }
-
-        var @event = JsonConvert.DeserializeObject(json, type);
-
-        return @event;
     }
 
     public IObservable<EventSourceEventContainer> ObservePersistedEvents(
@@ -120,15 +104,11 @@ public class EventStoreV5EventSourcePersistenceProvider :
             .Select(
                 e =>
                 {
-                    var json = Encoding.UTF8.GetString(e.Event.Data);
-                    var typeName = e.Event.EventType;
-                    var @event = DeserializeEvent(typeName, json);
-
                     var position = $"{e.OriginalPosition?.CommitPosition}-{e.OriginalPosition?.PreparePosition}";
 
                     return new EventSourceEventContainer(
                         position,
-                        @event
+                        new EventSourceEventData(e.Event.EventType, e.Event.Data)
                     );
                 }
             );
@@ -172,23 +152,15 @@ public class EventStoreV5EventSourcePersistenceProvider :
                         new CatchUpSubscriptionSettings(512, 512, false, false),
                         eventAppeared: (subscription, ese) =>
                         {
-                            var json = Encoding.UTF8.GetString(ese.Event.Data);
-                            var typeName = ese.Event.EventType;
-
                             var currentCommitPosition = ese.OriginalPosition?.CommitPosition ?? default;
                             var currentPreparePosition = ese.OriginalPosition?.PreparePosition ?? default;
 
-                            var ev = DeserializeEvent(typeName, json);
-
-                            if (ev != null)
-                            {
-                                observer.OnNext(
-                                    new EventSourceEventContainer(
-                                        $"{currentCommitPosition}-{currentPreparePosition}",
-                                        ev
-                                    )
-                                );
-                            }
+                            observer.OnNext(
+                                new EventSourceEventContainer(
+                                    $"{currentCommitPosition}-{currentPreparePosition}",
+                                    new EventSourceEventData(ese.Event.EventType, ese.Event.Data)
+                                )
+                            );
 
                             positionState.OnNext((currentCommitPosition, currentPreparePosition));
                         },

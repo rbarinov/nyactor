@@ -14,13 +14,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Set envs
+      run: |
+        echo "VERSION_NUMBER=$(cat RELEASE)" >> $GITHUB_ENV
+        echo "BUILD_NUMBER=$(expr 20 + ${{ github.run_number }})" >> $GITHUB_ENV
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.100
+        dotnet-version: 6.0.x
     - name: Build with dotnet
       run: |
-        dotnet pack -c Release -o packages
+        VERSION=$(echo "${{ env.VERSION_NUMBER }}.${{ env.BUILD_NUMBER }}")
+        echo VERSION=$VERSION
+        dotnet pack -c Release -o packages -p:Version=$VERSION
         for PACKAGE in packages/*.nupkg
         do
           dotnet nuget push $PACKAGE -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate

@@ -5,8 +5,8 @@ public interface IEventSourcePersistenceProvider
     Task PersistEventsAsync(
         Type eventSourcePersistedActorType,
         string key,
-        long exceptedVersion,
-        IEnumerable<object> events
+        long expectedVersion,
+        IEnumerable<EventSourceEventData> events
     );
 
     IObservable<EventSourceEventContainer> ObservePersistedEvents(
