@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="EventStore.Client" Version="5.0.8" />
+      <PackageReference Include="EventStore.Client" Version="5.0.12" />
     </ItemGroup>
 
 </Project>
