@@ -7,11 +7,11 @@ namespace NYActor;
 public class LocalActorReference<TActor> : IActorReference<TActor>
     where TActor : IActor
 {
-    private readonly ILocalActorDispatcher<TActor> _localActorDispatcher;
+    private readonly Func<ILocalActorDispatcher<TActor>> _dispatcherGetter;
 
-    public LocalActorReference(ILocalActorDispatcher<TActor> localActorDispatcher)
+    public LocalActorReference(Func<ILocalActorDispatcher<TActor>> dispatcherGetter)
     {
-        _localActorDispatcher = localActorDispatcher;
+        _dispatcherGetter = dispatcherGetter;
     }
 
     public Task SendAsync<TMessage>(
@@ -19,10 +19,11 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
         ActorExecutionContext actorExecutionContext = null
     )
     {
-        return _localActorDispatcher.SendAsync(
-            message,
-            actorExecutionContext
-        );
+        return _dispatcherGetter()
+            .SendAsync(
+                message,
+                actorExecutionContext
+            );
     }
 
     public Task<TResult> InvokeAsync<TResult>(
@@ -36,11 +37,12 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
 
         var func = req.Compile();
 
-        return _localActorDispatcher.InvokeAsync(
-            func,
-            callName,
-            actorExecutionContext
-        );
+        return _dispatcherGetter()
+            .InvokeAsync(
+                func,
+                callName,
+                actorExecutionContext
+            );
     }
 
     public Task InvokeAsync(Expression<Func<TActor, Task>> req, ActorExecutionContext actorExecutionContext = null)
@@ -51,17 +53,18 @@ public class LocalActorReference<TActor> : IActorReference<TActor>
 
         var func = req.Compile();
 
-        return _localActorDispatcher.InvokeAsync(
-            func,
-            callName,
-            actorExecutionContext
-        );
+        return _dispatcherGetter()
+            .InvokeAsync(
+                func,
+                callName,
+                actorExecutionContext
+            );
     }
 
     public IActorReference<TBaseActor> ToBaseRef<TBaseActor>() where TBaseActor : IActor
     {
-        var baseActorDispatcher = _localActorDispatcher as ILocalActorDispatcher<TBaseActor>;
+        var baseActorDispatcher = _dispatcherGetter() as ILocalActorDispatcher<TBaseActor>;
 
-        return new LocalActorReference<TBaseActor>(baseActorDispatcher);
+        return new LocalActorReference<TBaseActor>(() => _dispatcherGetter() as ILocalActorDispatcher<TBaseActor>);
     }
 }

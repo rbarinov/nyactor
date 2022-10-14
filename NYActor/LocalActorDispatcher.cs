@@ -20,6 +20,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
             tracingActivity)> _tracingActivityFactory;
 
     private readonly TimeSpan _actorDeactivationTimeout;
+    private readonly Action   _onDeactivation;
 
     private readonly Subject<Unit> _unsubscribeAll = new();
     private TActor _actor;
@@ -33,14 +34,16 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
         IServiceProvider serviceProvider,
         Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
             tracingActivity)> tracingActivityFactory,
-        TimeSpan actorDeactivationTimeout
+        TimeSpan actorDeactivationTimeout,
+        Action onDeactivation
     )
     {
-        _key = key;
-        _serviceProvider = serviceProvider;
-        _tracingActivityFactory = tracingActivityFactory;
+        _key                      = key;
+        _serviceProvider          = serviceProvider;
+        _tracingActivityFactory   = tracingActivityFactory;
         _actorDeactivationTimeout = actorDeactivationTimeout;
-        ActorSystem = actorSystem;
+        _onDeactivation      = onDeactivation;
+        ActorSystem               = actorSystem;
 
         var actorType = typeof(TActor);
 
@@ -150,6 +153,8 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
             {
                 // @todo handle deactivation unhandled exception
             }
+
+            return;
         }
 
         if (message is not IngressMessage ingressMessage) return;
@@ -276,6 +281,8 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
             {
                 await _actor.Deactivate()
                     .ConfigureAwait(false);
+
+                _onDeactivation();
             }
             finally
             {

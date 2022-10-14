@@ -32,8 +32,11 @@ public class EventSourceOverrideStreamPersistenceProvider : IEventSourcePersiste
         return _eventSourcePersistenceProvider.ObservePersistedEvents(_type, _key);
     }
 
-    public IObservable<EventSourceEventContainer> ObserveAllEvents(string fromPosition)
+    public IObservable<EventSourceEventContainer> ObserveAllEvents(
+        string fromPosition,
+        Action<EventSourceSubscriptionCatchUp> catchupSubscription = null
+    )
     {
-        return _eventSourcePersistenceProvider.ObserveAllEvents(fromPosition);
+        return _eventSourcePersistenceProvider.ObserveAllEvents(fromPosition, catchupSubscription);
     }
 }

@@ -35,7 +35,7 @@ public abstract class EventSourceWriteProjectionBaseActor : Actor
             GetType()
         );
 
-        _eventSourcePersistenceProvider.ObserveAllEvents(syncPosition.SyncPosition)
+        _eventSourcePersistenceProvider.ObserveAllEvents(syncPosition.SyncPosition, CatchupSubscription)
             .TakeUntil(_unsubscribeAll)
             .Select(e => new EventSourceEvent(e.Position, e.EventData.EventType, DeserializeEvent(e)))
             .Subscribe(_eventSubject);
@@ -66,6 +66,10 @@ public abstract class EventSourceWriteProjectionBaseActor : Actor
     }
 
     protected virtual void ObserveEvents(IObservable<EventSourceEvent> eventObservable)
+    {
+    }
+
+    protected virtual void CatchupSubscription(EventSourceSubscriptionCatchUp obj)
     {
     }
 
