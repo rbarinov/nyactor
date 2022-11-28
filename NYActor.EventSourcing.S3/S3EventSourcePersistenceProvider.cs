@@ -119,7 +119,10 @@ public class S3EventSourcePersistenceProvider :
             );
     }
 
-    public IObservable<EventSourceEventContainer> ObserveAllEvents(string fromPosition)
+    public IObservable<EventSourceEventContainer> ObserveAllEvents(
+        string fromPosition,
+        Action<EventSourceSubscriptionCatchUp> catchupSubscription = null
+    )
     {
         throw new NotSupportedException();
     }
