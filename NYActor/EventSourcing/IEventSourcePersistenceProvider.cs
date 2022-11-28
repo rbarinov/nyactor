@@ -14,5 +14,8 @@ public interface IEventSourcePersistenceProvider
         string key
     );
 
-    IObservable<EventSourceEventContainer> ObserveAllEvents(string fromPosition);
+    IObservable<EventSourceEventContainer> ObserveAllEvents(
+        string fromPosition,
+        Action<EventSourceSubscriptionCatchUp> catchupSubscription = null
+    );
 }

@@ -114,7 +114,10 @@ public class EventStoreV5EventSourcePersistenceProvider :
             );
     }
 
-    public IObservable<EventSourceEventContainer> ObserveAllEvents(string fromPosition)
+    public IObservable<EventSourceEventContainer> ObserveAllEvents(
+        string fromPosition,
+        Action<EventSourceSubscriptionCatchUp> catchupSubscription = null
+    )
     {
         return Observable.Create<EventSourceEventContainer>(
             observer =>
@@ -164,7 +167,13 @@ public class EventStoreV5EventSourcePersistenceProvider :
 
                             positionState.OnNext((currentCommitPosition, currentPreparePosition));
                         },
-                        liveProcessingStarted: catchup => { },
+                        liveProcessingStarted: c => catchupSubscription?.Invoke(
+                            new EventSourceSubscriptionCatchUp(
+                                c.IsSubscribedToAll,
+                                c.StreamId,
+                                c.SubscriptionName
+                            )
+                        ),
                         subscriptionDropped: (sub, res, ex) =>
                         {
                             if (!isDisposing)
