@@ -5,7 +5,7 @@ namespace NYActor;
 public class LocalActorNode : IActorSystem, IDisposable
 {
     private readonly ConcurrentDictionary<string, Lazy<ILocalActorDispatcher>> _actorDispatchers = new();
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceProvider                                          _serviceProvider;
 
     private readonly Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
         tracingActivity)> _tracingActivityFactory;
@@ -20,9 +20,9 @@ public class LocalActorNode : IActorSystem, IDisposable
         Func<IActorSystem> actorSystemGetter = null
     )
     {
-        _serviceProvider = serviceProvider;
-        _tracingActivityFactory = tracingActivityFactory;
-        _actorSystemGetter = actorSystemGetter;
+        _serviceProvider         = serviceProvider;
+        _tracingActivityFactory  = tracingActivityFactory;
+        _actorSystemGetter       = actorSystemGetter;
         ActorDeactivationTimeout = actorDeactivationTimeout;
     }
 
@@ -45,7 +45,21 @@ public class LocalActorNode : IActorSystem, IDisposable
                             _actorSystemGetter?.Invoke() ?? this,
                             _serviceProvider,
                             _tracingActivityFactory,
-                            ActorDeactivationTimeout
+                            ActorDeactivationTimeout,
+                            () =>
+                            {
+                                _actorDispatchers.TryRemove(actorPath, out var deleted);
+
+                                if (deleted?.IsValueCreated == true)
+                                {
+                                    var localActorDispatcher = deleted.Value;
+
+                                    if (localActorDispatcher is LocalActorDispatcher<TActor>)
+                                    {
+                                        ((LocalActorDispatcher<TActor>) localActorDispatcher).Dispose();
+                                    }
+                                }
+                            }
                         )
                 )
             );
