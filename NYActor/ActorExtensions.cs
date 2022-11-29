@@ -12,7 +12,7 @@ public static class ActorExtensions
 
         var createScopedReference = dispatcher?.CurrentExecutionContext is ScopedExecutionContext;
 
-        IActorReference<TActor> actorReference = new LocalActorReference<TActor>(dispatcher);
+        IActorReference<TActor> actorReference = new LocalActorReference<TActor>(() => dispatcher);
 
         if (createScopedReference)
         {
