@@ -5,7 +5,7 @@ namespace NYActor;
 public class LocalActorNode : IActorSystem, IDisposable
 {
     private readonly ConcurrentDictionary<string, Lazy<ILocalActorDispatcher>> _actorDispatchers = new();
-    private readonly IServiceProvider                                          _serviceProvider;
+    private readonly IServiceProvider _serviceProvider;
 
     private readonly Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
         tracingActivity)> _tracingActivityFactory;
@@ -20,9 +20,9 @@ public class LocalActorNode : IActorSystem, IDisposable
         Func<IActorSystem> actorSystemGetter = null
     )
     {
-        _serviceProvider         = serviceProvider;
-        _tracingActivityFactory  = tracingActivityFactory;
-        _actorSystemGetter       = actorSystemGetter;
+        _serviceProvider = serviceProvider;
+        _tracingActivityFactory = tracingActivityFactory;
+        _actorSystemGetter = actorSystemGetter;
         ActorDeactivationTimeout = actorDeactivationTimeout;
     }
 
@@ -31,43 +31,56 @@ public class LocalActorNode : IActorSystem, IDisposable
     public virtual IActorReference<TActor> GetActor<TActor>(string key) where TActor : Actor
     {
         var actorPath = $"{typeof(TActor).FullName}-{key}";
+        var actorSystem = _actorSystemGetter?.Invoke() ?? this;
+        var serviceProvider = _serviceProvider;
+        var tracingActivityFactory = _tracingActivityFactory;
+        var actorDeactivationTimeout = ActorDeactivationTimeout;
 
-        Lazy<ILocalActorDispatcher> lazyWrapper;
-
-        lock (_actorDispatchers)
+        var onDeactivation = () =>
         {
-            lazyWrapper = _actorDispatchers.GetOrAdd(
-                actorPath,
-                e => new Lazy<ILocalActorDispatcher>(
-                    () =>
-                        new LocalActorDispatcher<TActor>(
-                            key,
-                            _actorSystemGetter?.Invoke() ?? this,
-                            _serviceProvider,
-                            _tracingActivityFactory,
-                            ActorDeactivationTimeout,
-                            () =>
-                            {
-                                _actorDispatchers.TryRemove(actorPath, out var deleted);
+            _actorDispatchers.TryRemove(actorPath, out var deleted);
 
-                                if (deleted?.IsValueCreated == true)
-                                {
-                                    var localActorDispatcher = deleted.Value;
+            if (deleted?.IsValueCreated == true)
+            {
+                var localActorDispatcher = deleted.Value;
 
-                                    if (localActorDispatcher is LocalActorDispatcher<TActor>)
-                                    {
-                                        ((LocalActorDispatcher<TActor>) localActorDispatcher).Dispose();
-                                    }
-                                }
-                            }
-                        )
-                )
-            );
-        }
+                if (localActorDispatcher is LocalActorDispatcher<TActor>)
+                {
+                    ((LocalActorDispatcher<TActor>) localActorDispatcher).Dispose();
+                }
+            }
+        };
 
-        var actorWrapper = lazyWrapper.Value as ILocalActorDispatcher<TActor>;
+        Func<ILocalActorDispatcher<TActor>> dipatcherGetter = () =>
+        {
+            Lazy<ILocalActorDispatcher> lazyWrapper;
 
-        return new LocalActorReference<TActor>(actorWrapper);
+            lock (_actorDispatchers)
+            {
+                lazyWrapper = _actorDispatchers.GetOrAdd(
+                    actorPath,
+                    e => new Lazy<ILocalActorDispatcher>(
+                        () =>
+                        {
+                            return new LocalActorDispatcher<TActor>(
+                                key,
+                                actorSystem,
+                                serviceProvider,
+                                tracingActivityFactory,
+                                actorDeactivationTimeout,
+                                onDeactivation
+                            );
+                        }
+                    )
+                );
+            }
+
+            var actorDispatcher = lazyWrapper.Value as ILocalActorDispatcher<TActor>;
+
+            return actorDispatcher;
+        };
+
+        return new LocalActorReference<TActor>(dipatcherGetter);
     }
 
     public void Dispose()
