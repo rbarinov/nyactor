@@ -150,6 +150,8 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
             {
                 // @todo handle deactivation unhandled exception
             }
+
+            return;
         }
 
         if (message is not IngressMessage ingressMessage) return;
