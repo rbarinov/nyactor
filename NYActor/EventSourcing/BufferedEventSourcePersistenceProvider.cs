@@ -2,11 +2,11 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
-namespace NYActor.EventSourcing.EventStore.v5;
+namespace NYActor.EventSourcing;
 
-public class BufferedEventStoreV5EventSourcePersistenceProvider : IEventStoreV5EventSourcePersistenceProvider
+public class BufferedEventSourcePersistenceProvider : IEventSourcePersistenceProvider
 {
-    private readonly EventStoreV5EventSourcePersistenceProvider _persistenceProvider;
+    private readonly IEventSourcePersistenceProvider _persistenceProvider;
     private readonly bool _skipReadStreams;
 
     private readonly Subject<(Type eventSourcePersistedActorType, string key, long expectedVersion,
@@ -14,8 +14,8 @@ public class BufferedEventStoreV5EventSourcePersistenceProvider : IEventStoreV5E
 
     private Subject<Unit> _completion;
 
-    public BufferedEventStoreV5EventSourcePersistenceProvider(
-        EventStoreV5EventSourcePersistenceProvider persistenceProvider,
+    public BufferedEventSourcePersistenceProvider(
+        IEventSourcePersistenceProvider persistenceProvider,
         bool skipReadStreams = false
     )
     {
