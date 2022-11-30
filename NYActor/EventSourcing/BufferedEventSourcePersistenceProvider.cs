@@ -16,7 +16,8 @@ public class BufferedEventSourcePersistenceProvider : IEventSourcePersistencePro
 
     public BufferedEventSourcePersistenceProvider(
         IEventSourcePersistenceProvider persistenceProvider,
-        bool skipReadStreams = false
+        bool skipReadStreams = false,
+        int streamsWriteConcurrency = 16
     )
     {
         _persistenceProvider = persistenceProvider;
@@ -35,18 +36,18 @@ public class BufferedEventSourcePersistenceProvider : IEventSourcePersistencePro
                 chunk => chunk
                     .GroupBy(e => (e.eventSourcePersistedActorType, e.key))
                     .Select(
-                        chunk =>
+                        streamGrouping =>
                         {
-                            var eventSourcePersistedActorType = chunk.First()
+                            var eventSourcePersistedActorType = streamGrouping.First()
                                 .eventSourcePersistedActorType;
 
-                            var key = chunk.First()
+                            var key = streamGrouping.First()
                                 .key;
 
-                            var expectedVersion = chunk.First()
+                            var expectedVersion = streamGrouping.First()
                                 .expectedVersion;
 
-                            var events = chunk
+                            var events = streamGrouping
                                 .SelectMany(e => e.events)
                                 .ToList();
 
@@ -68,7 +69,7 @@ public class BufferedEventSourcePersistenceProvider : IEventSourcePersistencePro
                             )
                         )
                     )
-                    .Merge()
+                    .Merge(streamsWriteConcurrency)
             )
             .Merge(1)
             .LastOrDefaultAsync()
