@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <TargetFramework>net6.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NYActor\NYActor.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="EventStore.Client.Grpc.Streams" Version="22.0.0" />
+    </ItemGroup>
+
+</Project>
