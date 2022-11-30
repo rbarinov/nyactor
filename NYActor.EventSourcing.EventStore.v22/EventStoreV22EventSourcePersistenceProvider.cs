@@ -2,23 +2,22 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.Exceptions;
+using EventStore.Client;
 
 namespace NYActor.EventSourcing.EventStore.v22;
 
 public class EventStoreV22EventSourcePersistenceProvider :
     IEventStoreV22EventSourcePersistenceProvider
 {
-    private readonly IEventStoreConnection _eventStoreConnection;
+    private readonly EventStoreClient _eventStoreClient;
     private readonly int _activationEventReadBatchSize;
 
     public EventStoreV22EventSourcePersistenceProvider(
-        IEventStoreConnection eventStoreConnection,
+        EventStoreClient eventStoreClient,
         int activationEventReadBatchSize
     )
     {
-        _eventStoreConnection = eventStoreConnection;
+        _eventStoreClient = eventStoreClient;
         _activationEventReadBatchSize = activationEventReadBatchSize;
     }
 
@@ -32,9 +31,8 @@ public class EventStoreV22EventSourcePersistenceProvider :
         var eventStoreEvents = events
             .Select(
                 e => new EventData(
-                    Guid.NewGuid(),
+                    Uuid.NewUuid(),
                     e.EventType,
-                    true,
                     e.Event,
                     null
                 )
@@ -45,7 +43,11 @@ public class EventStoreV22EventSourcePersistenceProvider :
 
         try
         {
-            await _eventStoreConnection.AppendToStreamAsync(stream, expectedVersion, eventStoreEvents)
+            await _eventStoreClient.AppendToStreamAsync(
+                    stream,
+                    StreamRevision.FromInt64(expectedVersion),
+                    eventStoreEvents
+                )
                 .ConfigureAwait(false);
         }
         catch (WrongExpectedVersionException e)
@@ -70,27 +72,29 @@ public class EventStoreV22EventSourcePersistenceProvider :
         return Observable.Create<ResolvedEvent>(
                 async observer =>
                 {
-                    var read = 0;
+                    ulong pos = StreamPosition.Start;
 
                     try
                     {
                         do
                         {
-                            var batch = await _eventStoreConnection.ReadStreamEventsForwardAsync(
+                            var batch = _eventStoreClient.ReadStreamAsync(
+                                Direction.Forwards,
                                 GetStreamName(eventSourcePersistedActorType, key),
-                                read,
+                                pos,
                                 _activationEventReadBatchSize,
                                 false
                             );
 
-                            foreach (var @event in batch.Events)
+                            var events = await batch.ToListAsync();
+
+                            foreach (var ev in events)
                             {
-                                observer.OnNext(@event);
+                                observer.OnNext(ev);
+                                pos++;
                             }
 
-                            read += batch.Events.Length;
-
-                            if (batch.IsEndOfStream) break;
+                            if (events.Count < _activationEventReadBatchSize) break;
                         } while (true);
 
                         observer.OnCompleted();
@@ -108,7 +112,7 @@ public class EventStoreV22EventSourcePersistenceProvider :
 
                     return new EventSourceEventContainer(
                         position,
-                        new EventSourceEventData(e.Event.EventType, e.Event.Data)
+                        new EventSourceEventData(e.Event.EventType, e.Event.Data.ToArray())
                     );
                 }
             );
@@ -124,7 +128,7 @@ public class EventStoreV22EventSourcePersistenceProvider :
             {
                 var pattern = @"(\d+)-(\d+)";
 
-                var positionState = new BehaviorSubject<(long commitPosition, long preparePosition)>(
+                var positionState = new BehaviorSubject<(ulong commitPosition, ulong preparePosition)>(
                     (Position.Start.CommitPosition, Position.Start.PreparePosition)
                 );
 
@@ -132,12 +136,12 @@ public class EventStoreV22EventSourcePersistenceProvider :
                 {
                     var match = Regex.Match(fromPosition, pattern);
 
-                    var startCommitPosition = Convert.ToInt64(
+                    var startCommitPosition = Convert.ToUInt64(
                         match.Groups[1]
                             .Value
                     );
 
-                    var startPreparePosition = Convert.ToInt64(
+                    var startPreparePosition = Convert.ToUInt64(
                         match.Groups[1]
                             .Value
                     );
@@ -145,43 +149,109 @@ public class EventStoreV22EventSourcePersistenceProvider :
                     positionState.OnNext((startCommitPosition, startPreparePosition));
                 }
 
-                EventStoreAllCatchUpSubscription eventStoreSubscription;
+                IDisposable eventStoreSubscription = null;
                 var isDisposing = false;
 
-                void SubscribeToEventStore(long commitPosition, long preparePosition)
+                void SubscribeToEventStore(ulong commitPosition, ulong preparePosition)
                 {
-                    eventStoreSubscription = _eventStoreConnection.SubscribeToAllFrom(
-                        new Position(commitPosition, preparePosition),
-                        new CatchUpSubscriptionSettings(512, 512, false, false),
-                        eventAppeared: (subscription, ese) =>
-                        {
-                            var currentCommitPosition = ese.OriginalPosition?.CommitPosition ?? default;
-                            var currentPreparePosition = ese.OriginalPosition?.PreparePosition ?? default;
+                    var pos = new Position(commitPosition, preparePosition);
 
-                            observer.OnNext(
-                                new EventSourceEventContainer(
-                                    $"{currentCommitPosition}-{currentPreparePosition}",
-                                    new EventSourceEventData(ese.Event.EventType, ese.Event.Data)
-                                )
-                            );
-
-                            positionState.OnNext((currentCommitPosition, currentPreparePosition));
-                        },
-                        liveProcessingStarted: c => catchupSubscription?.Invoke(
-                            new EventSourceSubscriptionCatchUp(
-                                c.IsSubscribedToAll,
-                                c.StreamId,
-                                c.SubscriptionName
-                            )
-                        ),
-                        subscriptionDropped: (sub, res, ex) =>
+                    Task.Run(
+                        async () =>
                         {
-                            if (!isDisposing)
+                            try
                             {
-                                SubscribeToEventStore(
-                                    positionState.Value.commitPosition,
-                                    positionState.Value.preparePosition
+                                while (!isDisposing)
+                                {
+                                    var maxCount = _activationEventReadBatchSize;
+
+                                    var read = _eventStoreClient.ReadAllAsync(
+                                        Direction.Forwards,
+                                        pos,
+                                        maxCount,
+                                        false
+                                    );
+
+                                    var events = await read.ToListAsync();
+
+                                    foreach (var ev in events)
+                                    {
+                                        var currentCommitPosition = ev.OriginalPosition?.CommitPosition ?? default;
+                                        var currentPreparePosition = ev.OriginalPosition?.PreparePosition ?? default;
+
+                                        observer.OnNext(
+                                            new EventSourceEventContainer(
+                                                $"{currentCommitPosition}-{currentPreparePosition}",
+                                                new EventSourceEventData(ev.Event.EventType, ev.Event.Data.ToArray())
+                                            )
+                                        );
+
+                                        positionState.OnNext((currentCommitPosition, currentPreparePosition));
+
+                                        pos = ev.Event.Position;
+                                    }
+
+                                    if (events.Count < maxCount) break;
+                                }
+
+                                if (isDisposing)
+                                {
+                                    return;
+                                }
+
+                                catchupSubscription?.Invoke(
+                                    new EventSourceSubscriptionCatchUp(
+                                        true,
+                                        string.Empty,
+                                        string.Empty
+                                    )
                                 );
+
+                                if (isDisposing)
+                                {
+                                    return;
+                                }
+
+                                eventStoreSubscription = await _eventStoreClient.SubscribeToAllAsync(
+                                    FromAll.After(pos),
+                                    (sub, ev, ct) =>
+                                    {
+                                        var currentCommitPosition = ev.OriginalPosition?.CommitPosition ?? default;
+                                        var currentPreparePosition = ev.OriginalPosition?.PreparePosition ?? default;
+
+                                        observer.OnNext(
+                                            new EventSourceEventContainer(
+                                                $"{currentCommitPosition}-{currentPreparePosition}",
+                                                new EventSourceEventData(ev.Event.EventType, ev.Event.Data.ToArray())
+                                            )
+                                        );
+
+                                        positionState.OnNext((currentCommitPosition, currentPreparePosition));
+
+                                        return Task.CompletedTask;
+                                    },
+                                    false,
+                                    (sub, reason, ex) =>
+                                    {
+                                        if (!isDisposing)
+                                        {
+                                            SubscribeToEventStore(
+                                                positionState.Value.commitPosition,
+                                                positionState.Value.preparePosition
+                                            );
+                                        }
+                                    }
+                                );
+                            }
+                            catch (Exception ex)
+                            {
+                                if (!isDisposing)
+                                {
+                                    SubscribeToEventStore(
+                                        positionState.Value.commitPosition,
+                                        positionState.Value.preparePosition
+                                    );
+                                }
                             }
                         }
                     );
@@ -193,7 +263,7 @@ public class EventStoreV22EventSourcePersistenceProvider :
                     () =>
                     {
                         isDisposing = true;
-                        eventStoreSubscription?.Stop();
+                        eventStoreSubscription?.Dispose();
                     }
                 );
 
