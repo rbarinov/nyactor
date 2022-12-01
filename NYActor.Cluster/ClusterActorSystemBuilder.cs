@@ -2,10 +2,10 @@ namespace NYActor.Cluster;
 
 public class ClusterActorSystemBuilder : ActorSystemBuilder
 {
-    public override IActorSystem Build()
+    public override IActorSystem Build(IServiceProvider serviceProvider)
     {
         var clusterActorNode = new ClusterActorNode(
-            ServiceProvider,
+            serviceProvider,
             ActorDeactivationTimeout,
             TracingActivityFactory
         );

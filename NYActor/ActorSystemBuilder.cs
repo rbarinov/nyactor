@@ -8,21 +8,8 @@ public class ActorSystemBuilder
 
     protected TimeSpan ActorDeactivationTimeout = DefaultActorDeactivationTimeout;
 
-    protected IServiceProvider ServiceProvider;
-
     protected Func<ActorExecutionContext, string, (ActorExecutionContext actorExecutionContext, ITracingActivity
         tracingActivity)> TracingActivityFactory;
-
-    public ActorSystemBuilder ConfigureServices(Action<IServiceCollection> configureServices)
-    {
-        var serviceCollection = new ServiceCollection();
-
-        configureServices(serviceCollection);
-
-        ServiceProvider = serviceCollection.BuildServiceProvider();
-
-        return this;
-    }
 
     public ActorSystemBuilder WithActorDeactivationTimeout(TimeSpan actorDeactivationTimeout)
     {
@@ -41,9 +28,9 @@ public class ActorSystemBuilder
         return this;
     }
 
-    public virtual IActorSystem Build()
+    public virtual IActorSystem Build(IServiceProvider serviceProvider)
     {
-        var actorNode = new LocalActorNode(ServiceProvider, ActorDeactivationTimeout, TracingActivityFactory);
+        var actorNode = new LocalActorNode(serviceProvider, ActorDeactivationTimeout, TracingActivityFactory);
 
         return actorNode;
     }
