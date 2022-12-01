@@ -2,12 +2,14 @@ using NYActor;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddActors();
+builder.Services.AddActorSystem(
+    e =>
+    {
+        e.WithActorDeactivationTimeout(TimeSpan.FromSeconds(30));
+    });
 builder.Services.AddSingleton<ITime>(new Time());
 
 var app = builder.Build();
-
-app.UseActorSystem(e => { e.WithActorDeactivationTimeout(TimeSpan.FromSeconds(5)); });
 
 app.MapGet(
     "/",
