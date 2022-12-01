@@ -156,103 +156,64 @@ public class EventStoreV22EventSourcePersistenceProvider :
                 {
                     var pos = new Position(commitPosition, preparePosition);
 
+                    var catchupInvoked = false;
+
                     Task.Run(
                         async () =>
                         {
-                            try
-                            {
-                                while (!isDisposing)
-                                {
-                                    var maxCount = _activationEventReadBatchSize;
+                            var catchupCheckpoint = _eventStoreClient.ReadAllAsync(
+                                Direction.Backwards,
+                                Position.End,
+                                1,
+                                false
+                            );
 
-                                    var read = _eventStoreClient.ReadAllAsync(
-                                        Direction.Forwards,
-                                        pos,
-                                        maxCount,
-                                        false
+                            var lastEvent = await catchupCheckpoint.FirstAsync();
+                            var catchupPosition = lastEvent.Event.Position;
+
+                            eventStoreSubscription = await _eventStoreClient.SubscribeToAllAsync(
+                                FromAll.After(pos),
+                                (sub, ev, ct) =>
+                                {
+                                    var currentCommitPosition = ev.Event.Position.CommitPosition;
+                                    var currentPreparePosition = ev.Event.Position.PreparePosition;
+
+                                    observer.OnNext(
+                                        new EventSourceEventContainer(
+                                            $"{currentCommitPosition}-{currentPreparePosition}",
+                                            new EventSourceEventData(ev.Event.EventType, ev.Event.Data.ToArray())
+                                        )
                                     );
 
-                                    var events = await read.ToListAsync();
-
-                                    foreach (var ev in events)
+                                    if (ev.Event.Position >= catchupPosition && !catchupInvoked)
                                     {
-                                        var currentCommitPosition = ev.OriginalPosition?.CommitPosition ?? default;
-                                        var currentPreparePosition = ev.OriginalPosition?.PreparePosition ?? default;
+                                        catchupInvoked = true;
 
-                                        observer.OnNext(
-                                            new EventSourceEventContainer(
-                                                $"{currentCommitPosition}-{currentPreparePosition}",
-                                                new EventSourceEventData(ev.Event.EventType, ev.Event.Data.ToArray())
+                                        catchupSubscription?.Invoke(
+                                            new EventSourceSubscriptionCatchUp(
+                                                true,
+                                                string.Empty,
+                                                string.Empty
                                             )
                                         );
-
-                                        positionState.OnNext((currentCommitPosition, currentPreparePosition));
-
-                                        pos = ev.Event.Position;
                                     }
 
-                                    if (events.Count < maxCount) break;
-                                }
+                                    positionState.OnNext((currentCommitPosition, currentPreparePosition));
 
-                                if (isDisposing)
+                                    return Task.CompletedTask;
+                                },
+                                false,
+                                (sub, reason, ex) =>
                                 {
-                                    return;
-                                }
-
-                                catchupSubscription?.Invoke(
-                                    new EventSourceSubscriptionCatchUp(
-                                        true,
-                                        string.Empty,
-                                        string.Empty
-                                    )
-                                );
-
-                                if (isDisposing)
-                                {
-                                    return;
-                                }
-
-                                eventStoreSubscription = await _eventStoreClient.SubscribeToAllAsync(
-                                    FromAll.After(pos),
-                                    (sub, ev, ct) =>
+                                    if (!isDisposing)
                                     {
-                                        var currentCommitPosition = ev.OriginalPosition?.CommitPosition ?? default;
-                                        var currentPreparePosition = ev.OriginalPosition?.PreparePosition ?? default;
-
-                                        observer.OnNext(
-                                            new EventSourceEventContainer(
-                                                $"{currentCommitPosition}-{currentPreparePosition}",
-                                                new EventSourceEventData(ev.Event.EventType, ev.Event.Data.ToArray())
-                                            )
+                                        SubscribeToEventStore(
+                                            positionState.Value.commitPosition,
+                                            positionState.Value.preparePosition
                                         );
-
-                                        positionState.OnNext((currentCommitPosition, currentPreparePosition));
-
-                                        return Task.CompletedTask;
-                                    },
-                                    false,
-                                    (sub, reason, ex) =>
-                                    {
-                                        if (!isDisposing)
-                                        {
-                                            SubscribeToEventStore(
-                                                positionState.Value.commitPosition,
-                                                positionState.Value.preparePosition
-                                            );
-                                        }
                                     }
-                                );
-                            }
-                            catch (Exception ex)
-                            {
-                                if (!isDisposing)
-                                {
-                                    SubscribeToEventStore(
-                                        positionState.Value.commitPosition,
-                                        positionState.Value.preparePosition
-                                    );
                                 }
-                            }
+                            );
                         }
                     );
                 }
