@@ -86,6 +86,11 @@ public class EventStoreV22EventSourcePersistenceProvider :
                                 false
                             );
 
+                            if (await batch.ReadState == ReadState.StreamNotFound)
+                            {
+                                break;
+                            }
+
                             var events = await batch.ToListAsync();
 
                             foreach (var ev in events)
