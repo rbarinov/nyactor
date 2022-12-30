@@ -47,8 +47,14 @@ public class PostgresqlConnectionFactoryBuilder
 
         public async Task<NpgsqlConnection> OpenConnectionAsync()
         {
-            return await _dataSourceBuilder.Build()
+            var npgsqlDataSource = _dataSourceBuilder.Build();
+
+            var openConnectionAsync = await npgsqlDataSource
                 .OpenConnectionAsync();
+
+            openConnectionAsync.Disposed += (sender, args) => { npgsqlDataSource.Dispose(); };
+
+            return openConnectionAsync;
         }
     }
 
