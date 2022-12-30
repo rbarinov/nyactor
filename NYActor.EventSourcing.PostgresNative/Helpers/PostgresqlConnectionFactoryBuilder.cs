@@ -1,3 +1,4 @@
+using System.Data;
 using Npgsql;
 
 namespace NYActor.EventSourcing.PostgresqlNative.Helpers;
@@ -36,6 +37,7 @@ public class PostgresqlConnectionFactoryBuilder
     private class DataSourceBuilderFactory : IPostgresqlConnectionFactory
     {
         private readonly NpgsqlDataSourceBuilder _dataSourceBuilder;
+        private NpgsqlDataSource _npgsqlDataSource;
 
         public DataSourceBuilderFactory(string connectionString, Action<NpgsqlDataSourceBuilder> configureDataSource)
         {
@@ -43,16 +45,14 @@ public class PostgresqlConnectionFactoryBuilder
             configureDataSource?.Invoke(dataSourceBuilder);
 
             _dataSourceBuilder = dataSourceBuilder;
+            _npgsqlDataSource = _dataSourceBuilder.Build();
+
         }
 
         public async Task<NpgsqlConnection> OpenConnectionAsync()
         {
-            var npgsqlDataSource = _dataSourceBuilder.Build();
-
-            var openConnectionAsync = await npgsqlDataSource
+            var openConnectionAsync = await _npgsqlDataSource
                 .OpenConnectionAsync();
-
-            openConnectionAsync.Disposed += (sender, args) => { npgsqlDataSource.Dispose(); };
 
             return openConnectionAsync;
         }
