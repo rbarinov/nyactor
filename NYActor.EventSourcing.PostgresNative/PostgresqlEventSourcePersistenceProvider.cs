@@ -127,8 +127,10 @@ order by version asc;"
         Observable.Create<EventSourceEventContainer>(
             async joinedObserver =>
             {
+                var minGlobalPosition = long.TryParse(fromPosition, out var parsed) ? parsed : -1;
+                var globalPosition = new BehaviorSubject<long>(minGlobalPosition);
+
                 var pgPosition = new BehaviorSubject<long>(-1);
-                var globalPosition = new BehaviorSubject<long>(-1);
 
                 var subDb = await _subFactory.OpenConnectionAsync();
                 var subCts = new CancellationTokenSource();
