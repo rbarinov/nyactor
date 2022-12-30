@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.S3", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.EventStore.v22", "NYActor.EventSourcing.EventStore.v22\NYActor.EventSourcing.EventStore.v22.csproj", "{126D32D7-E1BC-4331-98D1-E0E898C01479}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NYActor.EventSourcing.PostgresNative", "NYActor.EventSourcing.PostgresNative\NYActor.EventSourcing.PostgresNative.csproj", "{1FA44A4F-765B-4F9B-859A-821E5DD14FBB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,5 +74,9 @@ Global
 		{126D32D7-E1BC-4331-98D1-E0E898C01479}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{126D32D7-E1BC-4331-98D1-E0E898C01479}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{126D32D7-E1BC-4331-98D1-E0E898C01479}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FA44A4F-765B-4F9B-859A-821E5DD14FBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FA44A4F-765B-4F9B-859A-821E5DD14FBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FA44A4F-765B-4F9B-859A-821E5DD14FBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FA44A4F-765B-4F9B-859A-821E5DD14FBB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
