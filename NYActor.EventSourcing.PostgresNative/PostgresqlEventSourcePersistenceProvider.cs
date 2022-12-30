@@ -116,7 +116,7 @@ order by version asc;"
                     )
                     .Ignore();
 
-                return Task.FromResult<IDisposable>(cts);
+                return cts;
             }
         );
 
