@@ -22,6 +22,7 @@
     <ItemGroup>
         <ProjectReference Include="..\NYActor.Cluster\NYActor.Cluster.csproj" />
         <ProjectReference Include="..\NYActor.EventSourcing.EventStore.v5\NYActor.EventSourcing.EventStore.v5.csproj" />
+        <ProjectReference Include="..\NYActor.EventSourcing.PostgresNative\NYActor.EventSourcing.PostgresNative.csproj" />
         <ProjectReference Include="..\NYActor.EventSourcing.Projections.Postgres\NYActor.EventSourcing.Projections.Postgres.csproj" />
         <ProjectReference Include="..\NYActor.EventSourcing.S3\NYActor.EventSourcing.S3.csproj" />
         <ProjectReference Include="..\NYActor.OpenTelemetry\NYActor.OpenTelemetry.csproj" />
