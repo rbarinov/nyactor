@@ -162,9 +162,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
         ITracingActivity tracingActivity = null;
 
-        if (_actor
-                .GetType()
-                .GetCustomAttribute<NoTracingAttribute>() is null)
+        if (typeof(TActor).GetCustomAttribute<NoTracingAttribute>() is null)
         {
             (CurrentExecutionContext, tracingActivity) = _tracingActivityFactory?.Invoke(
                 ingressMessage.ActorExecutionContext,
