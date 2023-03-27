@@ -2,6 +2,7 @@ using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NYActor.Message;
 
@@ -20,7 +21,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
             tracingActivity)> _tracingActivityFactory;
 
     private readonly TimeSpan _actorDeactivationTimeout;
-    private readonly Action   _onDeactivation;
+    private readonly Action _onDeactivation;
 
     private readonly Subject<Unit> _unsubscribeAll = new();
     private TActor _actor;
@@ -38,12 +39,12 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
         Action onDeactivation
     )
     {
-        _key                      = key;
-        _serviceProvider          = serviceProvider;
-        _tracingActivityFactory   = tracingActivityFactory;
+        _key = key;
+        _serviceProvider = serviceProvider;
+        _tracingActivityFactory = tracingActivityFactory;
         _actorDeactivationTimeout = actorDeactivationTimeout;
-        _onDeactivation      = onDeactivation;
-        ActorSystem               = actorSystem;
+        _onDeactivation = onDeactivation;
+        ActorSystem = actorSystem;
 
         var actorType = typeof(TActor);
 
@@ -95,7 +96,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
         _ingress.OnNext(
             new IngressAskMessage(
-                async e => await req((TActor) e),
+                async e => await req((TActor)e),
                 taskCompletionSource,
                 callName,
                 actorExecutionContext
@@ -104,7 +105,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
         var response = await taskCompletionSource.Task.ConfigureAwait(false);
 
-        return (TResult) response;
+        return (TResult)response;
     }
 
     public async Task InvokeAsync(
@@ -119,7 +120,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
             new IngressAskMessage(
                 async e =>
                 {
-                    await req((TActor) e);
+                    await req((TActor)e);
 
                     return Unit.Default;
                 },
@@ -140,7 +141,7 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
     private async Task HandleIngressMessage(object message)
     {
-        if (message is PoisonPill or IngressOnewayMessage {Payload: PoisonPill})
+        if (message is PoisonPill or IngressOnewayMessage { Payload: PoisonPill })
         {
             if (_actor == null) return;
 
@@ -159,12 +160,17 @@ public sealed class LocalActorDispatcher<TActor> : ILocalActorDispatcher<TActor>
 
         if (message is not IngressMessage ingressMessage) return;
 
-        var (actorExecutionContext, tracingActivity) = _tracingActivityFactory?.Invoke(
-            ingressMessage.ActorExecutionContext,
-            $"{_fullName}: {(ingressMessage as IngressAskMessage)?.CallName ?? nameof(IngressOnewayMessage)}"
-        ) ?? (ingressMessage.ActorExecutionContext, default);
+        ITracingActivity tracingActivity = null;
 
-        CurrentExecutionContext = actorExecutionContext;
+        if (_actor
+                .GetType()
+                .GetCustomAttribute<NoTracingAttribute>() is null)
+        {
+            (CurrentExecutionContext, tracingActivity) = _tracingActivityFactory?.Invoke(
+                ingressMessage.ActorExecutionContext,
+                $"{_fullName}: {(ingressMessage as IngressAskMessage)?.CallName ?? nameof(IngressOnewayMessage)}"
+            ) ?? (ingressMessage.ActorExecutionContext, default);
+        }
 
         try
         {
